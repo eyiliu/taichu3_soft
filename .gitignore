@@ -1,0 +1,17 @@
+BUILD/*
+INSTALL/*
+TEMP/*
+DATA/*
+
+build/*
+install/*
+temp/*
+data/*
+
+*.sh
+
+.*
+\#*#
+*~
+*.pyc
+Thumbs.db
