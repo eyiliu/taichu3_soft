@@ -2,6 +2,8 @@ add_subdirectory(linenoiseng)
 add_subdirectory(getopt)
 add_subdirectory(rapidjson)
 add_subdirectory(gte)
+add_subdirectory(msgpack)
+
 
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -14,6 +16,7 @@ target_link_libraries(mycommon INTERFACE
   getopt
   rapidjson
   Threads::Threads
+  msgpack
   ${CMAKE_DL_LIBS} #dl not sure if it works with full static
   gte
   )
