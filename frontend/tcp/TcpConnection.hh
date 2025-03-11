@@ -9,29 +9,42 @@
 #include <memory>
 #include <chrono>
 
-#include <msgpack.hpp>
-typedef msgpack::unique_ptr<msgpack::zone> unique_zone;
+
+class TcpBuffer{
+public:
+  void append(size_t length, const char *data){
+    m_buf += std::string(data, length);
+    updatelength();
+  };
+  
+  bool havepacket() const{
+    return m_buf.length() >= m_len;
+  };
+  std::string getpacket(){
+    if (!havepacket()){
+      std::err<<"havepacket return  false\n";
+      throw;
+    }
+    std::string packet(m_buf, 0, m_len);
+    m_buf.erase(0, m_len);
+    updatelength(true);
+    return packet;
+  };
+
+private:
+  void updatelength(bool = false){m_len =4}; //for fixed length
+  //check 1st pack format in updatelength
+  
+  size_t m_len{4};
+  std::string m_buf{""};
+};
+
 
 class TcpConnection;
 
 //callback
-typedef int (*FunProcessMessage)(void* pobj, void* pconn,  msgpack::object_handle&);
+typedef int (*FunProcessMessage)(void* pobj, void* pconn,  const std::string& pak);
 typedef int (*FunSendDeamon)(void* pobj, void*pconn);
-
-
-struct NetMsg{
-  enum Type: uint16_t {data, daqcmd, daqreset, daqconf, daqstart, daqstop, daqinit};
-  uint16_t type;
-  uint16_t device;
-  uint32_t address;
-  uint32_t value;
-  uint16_t headM;
-  uint16_t wireN;
-  uint16_t hitN;
-  uint64_t timeV;
-  std::vector<char> bin;
-  MSGPACK_DEFINE(type, device, address, value, headM, wireN, hitN, timeV, bin);
-};
 
 class TcpConnection{
 public:
@@ -59,14 +72,13 @@ public:
   static int createServerSocket(short int port);
   static std::unique_ptr<TcpConnection> waitForNewClient(int sockfd, const std::chrono::milliseconds &timeout, FunProcessMessage recvFun, FunSendDeamon sendFun, void* pobj);
 
-  //test
-  static int processMessageServerTest(void* pobj, void* pconn, msgpack::object_handle& oh);
-  static int processMessageClientTest(void* pobj, void* pconn, msgpack::object_handle& oh);
-
   static std::string binToHexString(const char *bin, int len);
+
 private:
   std::future<uint64_t> m_fut;
   std::future<int> m_fut_send;
   bool m_isAlive{false};
   int m_sockfd{-1};
+
+  TcpBuffer m_tcpbuf;
 };

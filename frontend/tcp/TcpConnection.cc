@@ -42,16 +42,18 @@ TcpConnection::operator bool() const {
 }
 
 uint64_t TcpConnection::threadConnRecv(FunProcessMessage processMessage, void* pobj){
-  msgpack::unpacker unp;
-  msgpack::object_handle oh;
-
+  static const int MAX_BUFFER_SIZE = 10000;
+  
   timeval tv_timeout;
   tv_timeout.tv_sec = 0;
   tv_timeout.tv_usec = 10;
   fd_set fds;
   m_isAlive = true;
   std::printf("listenning on the client connection recv\n");
+
+  char buffer[MAX_BUFFER_SIZE + 1];
   while (m_isAlive){
+
     FD_ZERO(&fds);
     FD_SET(m_sockfd, &fds);
     FD_SET(0, &fds);
@@ -59,20 +61,19 @@ uint64_t TcpConnection::threadConnRecv(FunProcessMessage processMessage, void* p
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
       continue;
     }
-    unp.reserve_buffer(4096);
-    int count = recv(m_sockfd, unp.buffer(), (unsigned int)(unp.buffer_capacity()), MSG_WAITALL);
+
+    int count = recv(m_sockfd, buffer, (unsigned int)MAX_BUFFER_SIZE,0);
     if(count== 0 && errno != EWOULDBLOCK && errno != EAGAIN){
       m_isAlive = false; // closed connection
       std::printf("connection is closed by remote peer\n");
       break;
     }
     if(count == 0){
-      std::this_thread::sleep_for(std::chrono::milliseconds(1));
       continue;
     }
-    unp.buffer_consumed(count);
-    while (unp.next(oh)){
-      int re = (*processMessage)(pobj, this, oh);
+    m_tcpbuf.append(counter, buffer);    
+    while (m_tcpbuf.havepacket()){
+      int re = (*processMessage)(pobj, this, m_tcpbuf.getpacket());
       if(re < 0){
         std::fprintf(stderr, "error: processMessage return error \n");
         m_isAlive = false;
@@ -88,21 +89,6 @@ uint64_t TcpConnection::threadConnRecv(FunProcessMessage processMessage, void* p
   m_isAlive = false;
   printf("threadConnRecv exited\n");
   return 0;
-}
-
-int TcpConnection::processMessageClientTest(void* ,void* pconn, msgpack::object_handle& oh){
-  msgpack::object msg = oh.get();
-  unique_zone& life = oh.zone();
-  std::cout << "client processMessage: " << msg << std::endl;
-  return 1;
-}
-
-
-int TcpConnection::processMessageServerTest(void* ,void* pconn, msgpack::object_handle& oh){
-  msgpack::object msg = oh.get();
-  unique_zone& life = oh.zone();
-  std::cout << "server processMessage: " << msg << std::endl;
-  return 1;
 }
 
 
