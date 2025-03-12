@@ -71,7 +71,9 @@ uint64_t TcpConnection::threadConnRecv(FunProcessMessage processMessage, void* p
     if(count == 0){
       continue;
     }
-    m_tcpbuf.append(counter, buffer);    
+
+    
+    m_tcpbuf.append(count, buffer);    
     while (m_tcpbuf.havepacket()){
       int re = (*processMessage)(pobj, this, m_tcpbuf.getpacket());
       if(re < 0){
@@ -79,11 +81,6 @@ uint64_t TcpConnection::threadConnRecv(FunProcessMessage processMessage, void* p
         m_isAlive = false;
         break;
       }
-    }
-    if(unp.nonparsed_size() > 4096) {
-      m_isAlive = false;
-      std::fprintf(stderr, "error: nonparsed buffer of message is too large\n");
-      break;
     }
   }
   m_isAlive = false;

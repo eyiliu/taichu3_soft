@@ -1,9 +1,10 @@
 
 add_subdirectory(rbcp)
+add_subdirectory(tcpcon)
 
 aux_source_directory(src LIB_SRC)
 add_library(frontend SHARED ${LIB_SRC} )
-target_link_libraries (frontend PRIVATE mycommon rbcp stdc++fs)
+target_link_libraries (frontend PRIVATE mycommon rbcp tcpcon stdc++fs)
 target_include_directories(frontend
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

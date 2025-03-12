@@ -5,5 +5,5 @@ target_include_directories(rbcp
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   )
 
-set(LIB_PUBLIC_HEADERS rbcp.h)
+set(LIB_PUBLIC_HEADERS rbcp.hh)
 set_target_properties(rbcp PROPERTIES PUBLIC_HEADER "${LIB_PUBLIC_HEADERS}")

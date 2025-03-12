@@ -22,7 +22,7 @@ public:
   };
   std::string getpacket(){
     if (!havepacket()){
-      std::err<<"havepacket return  false\n";
+      std::cerr<<"havepacket return  false\n";
       throw;
     }
     std::string packet(m_buf, 0, m_len);
@@ -32,7 +32,7 @@ public:
   };
 
 private:
-  void updatelength(bool = false){m_len =4}; //for fixed length
+  void updatelength(bool = false){m_len =4;}; //for fixed length
   //check 1st pack format in updatelength
   
   size_t m_len{4};
