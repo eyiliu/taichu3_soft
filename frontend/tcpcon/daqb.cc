@@ -6,6 +6,9 @@
 #include "daqb.hh"
 #include "TcpConnection.hh"
 
+#pragma GCC diagnostic ignored "-Wpmf-conversions"
+
+
 
 #ifndef DEBUG_PRINT
 #define DEBUG_PRINT 0
@@ -18,6 +21,7 @@
 #endif
 #define info_print(fmt, ...)                                           \
   do { if (INFO_PRINT) std::fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
+
 
 
 daqb::~daqb(){
@@ -47,8 +51,8 @@ void daqb::daq_start_run(){
   //rbcp start
   m_isDataAccept= true;
 
+  m_tcpcon =  TcpConnection::connectToServer(m_host,  m_port, reinterpret_cast<FunProcessMessage>(&daqb::perConnProcessRecvMesg), nullptr, this);
 
-  
   if(!m_is_async_watching){
     m_fut_async_watch = std::async(std::launch::async, &daqb::AsyncWatchDog, this);
   }
@@ -59,8 +63,6 @@ void daqb::daq_start_run(){
 void daqb::daq_stop_run(){
   m_isDataAccept= false;
   
-
-
   
   m_is_async_watching = false;
   if(m_fut_async_watch.valid()){
@@ -72,7 +74,6 @@ void daqb::daq_stop_run(){
 
 void daqb::daq_reset(){
   m_isDataAccept= false;
-
   return;
 }
 

@@ -100,12 +100,9 @@ public:
   std::string GetStatusString();
   uint64_t AsyncWatchDog();
 
-
   std::string m_name;
   std::string m_host;
   short int m_port;
-  std::vector<std::pair<uint16_t, uint16_t>> m_hots;
-
 
   template<typename ... Args>
   static std::string FormatString( const std::string& format, Args ... args ){
@@ -115,4 +112,7 @@ public:
     return std::string( buf.get(), buf.get() + size - 1 );
   }
 
+
+
+  
 };
