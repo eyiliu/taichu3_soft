@@ -216,11 +216,11 @@ int main(int argc, char **argv){
 
   std::FILE *fp_data=0;
 
-  std::unique_ptr<daqb> daqb;
+  std::unique_ptr<daqb> daqbup;
   try{
-    daqb.reset(new daqb("taichu_daqb", daqbHost_ipstr, daqbPortN));
+    daqbup.reset(new daqb("taichu_daqb", daqbHost_ipstr, daqbPortN));
   }catch(...){
-    daqb.reset();
+    daqbup.reset();
     exit(-1);
   }
 
@@ -259,7 +259,7 @@ int main(int argc, char **argv){
     }
     else if ( std::regex_match(result, std::regex("\\s*(reset)\\s*")) ){
       printf("reset\n");
-      daqb->daq_reset();
+      daqbup->daq_reset();
       g_data_done = 1;
       if(fut_async_data.valid()){
         fut_async_data.get();
@@ -268,19 +268,19 @@ int main(int argc, char **argv){
     }
     else if ( std::regex_match(result, std::regex("\\s*(conf)\\s*")) ){
       printf("conf\n");
-      daqb->daq_conf_default();
+      daqbup->daq_conf_default();
     }
     else if ( std::regex_match(result, std::regex("\\s*(start)\\s*")) ){
       printf("start\n");
       std::string name_datafile = std::string("data_")+TimeNowString("%y%m%d%H%M%S")+std::string(".dat");
       std::filesystem::path file_data_path = data_folder_path_abs/name_datafile;
       fp_data = create_and_open_file(file_data_path);
-      fut_async_data = std::async(std::launch::async, &AsyncDataSave, fp_data, daqb.get());
-      daqb->daq_start_run();
+      fut_async_data = std::async(std::launch::async, &AsyncDataSave, fp_data, daqbup.get());
+      daqbup->daq_start_run();
     }
     else if ( std::regex_match(result, std::regex("\\s*(stop)\\s*")) ){
       printf("stop\n");
-      daqb->daq_stop_run();
+      daqbup->daq_stop_run();
       g_data_done = 1;
       if(fut_async_data.valid())
         fut_async_data.get();

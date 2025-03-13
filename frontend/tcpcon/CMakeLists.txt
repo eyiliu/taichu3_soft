@@ -10,5 +10,5 @@ target_include_directories(tcpcon
 
 
   
-set(LIB_PUBLIC_HEADERS TcpConnection.hh)
+set(LIB_PUBLIC_HEADERS TcpConnection.hh  daqb.hh)
 set_target_properties(tcpcon PROPERTIES PUBLIC_HEADER "${LIB_PUBLIC_HEADERS}")

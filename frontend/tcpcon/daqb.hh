@@ -6,6 +6,8 @@
 
 #include <cstdio>
 #include "mysystem.hh"
+#include "TcpConnection.hh"
+
 
 
 class TcpConnection;
