@@ -1,0 +1,118 @@
+#pragma once
+
+#include <mutex>
+#include <future>
+#include <memory>
+
+#include <cstdio>
+#include "mysystem.hh"
+
+
+class TcpConnection;
+
+struct DataPack;
+  
+struct DataPack{
+  uint16_t xcol; 
+  uint16_t yrow;
+  uint8_t  tschip;
+  uint8_t  isvalid;
+  uint8_t  pattern;
+  uint8_t  idchip;
+  uint32_t tsfpga;
+
+  static int MakeDataPack(const std::string& str, DataPack& pack){
+    if(str.size()!=4){
+      return -1;
+    }
+    uint64_t v  = BE64TOH(*reinterpret_cast<const uint64_t*>(str.data()));
+    pack.pattern =  v & 0xf;
+    pack.yrow    = (v & 0x3ff)>> 4;
+    pack.xcol    = (v & 0x1ff)>> (4+10);
+    pack.tschip  = (v & 0xff)>> (4+10+9);
+    pack.tsfpga  = (v & 0xfffffff)>> (4+10+9+8);
+    pack.isvalid = (v & 0x1)>> (4+10+9+8+28);
+    pack.idchip  = (v & 0xf)>> (4+10+9+8+28+1);
+    return 4;
+  }
+  
+  bool CheckDataPack(){
+    return (idchip == 0b1101) && (isvalid == 1) && (pattern == 0b0000);
+  };
+};
+
+using daqb_packSP = std::shared_ptr<DataPack>;
+
+class daqb{
+public:
+  std::future<uint64_t> m_fut_async_watch;
+  std::vector<daqb_packSP> m_vec_ring_ev;
+  daqb_packSP m_ring_end;
+
+  uint64_t m_size_ring{200000};
+  std::atomic<uint64_t> m_count_ring_write;
+  std::atomic<uint64_t> m_hot_p_read;
+  uint64_t m_count_ring_read;
+  bool m_is_async_watching{false};
+
+  uint64_t m_extension{0};
+
+  //status variable:
+  std::atomic<uint64_t> m_st_n_tg_ev_now{0};
+  std::atomic<uint64_t> m_st_n_ev_input_now{0};
+  std::atomic<uint64_t> m_st_n_ev_output_now{0};
+  std::atomic<uint64_t> m_st_n_ev_bad_now{0};
+  std::atomic<uint64_t> m_st_n_ev_overflow_now{0};
+  std::atomic<uint64_t> m_st_n_tg_ev_begin{0};
+
+  uint64_t m_st_n_tg_ev_old{0};
+  uint64_t m_st_n_ev_input_old{0};
+  uint64_t m_st_n_ev_bad_old{0};
+  uint64_t m_st_n_ev_overflow_old{0};
+
+  std::string m_st_string;
+  std::mutex m_mtx_st;
+
+  uint32_t m_tg_expected{0};
+  uint32_t m_flag_wait_first_event{true};
+
+  bool m_isDataAccept{false};
+  std::unique_ptr<TcpConnection> m_tcpcon;
+public:
+  daqb(const std::string& name, const std::string& host, short int port)
+    :m_name(name), m_host(host), m_port(port){
+  }
+
+  ~daqb();
+
+  void daq_start_run();
+  void daq_stop_run();
+  void daq_reset();
+  void daq_conf_default();
+
+  int perConnProcessRecvMesg(void* pconn, const std::string& pak);
+
+  daqb_packSP& Front();
+  void PopFront();
+  uint64_t Size();
+  void ClearBuffer();
+
+  std::string GetStatusString();
+  uint64_t AsyncWatchDog();
+
+
+  std::string m_name;
+  std::string m_host;
+  short int m_port;
+  std::vector<std::pair<uint16_t, uint16_t>> m_hots;
+
+
+  template<typename ... Args>
+  static std::string FormatString( const std::string& format, Args ... args ){
+    std::size_t size = snprintf( nullptr, 0, format.c_str(), args ... ) + 1;
+    std::unique_ptr<char[]> buf( new char[ size ] );
+    std::snprintf( buf.get(), size, format.c_str(), args ... );
+    return std::string( buf.get(), buf.get() + size - 1 );
+  }
+
+};
