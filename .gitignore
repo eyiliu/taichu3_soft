@@ -1,3 +1,4 @@
+# gitignore
 .*
 \#*#
 *~
@@ -5,12 +6,13 @@ Thumbs.db
 *.log
 *.zip
 *.gz
-
-build/*
-install/*
-temp/*
-backup/*
-BUILD/*
-INSTALL/*
-TEMP/*
+*.pyc
+__pycache__/
+build/
+install/
+temp/
+backup/
+BUILD/
+INSTALL/
+TEMP/
 BACKUP/

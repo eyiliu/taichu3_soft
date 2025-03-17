@@ -105,13 +105,12 @@ int main(int argc, char **argv){
   Frontend fw(reglist_jsstr_sensor, reglist_jsstr_firmware, ip_address_str);
   
   std::filesystem::path linenoise_history_path = std::filesystem::temp_directory_path() / "rbcptool.history.txt";
-  
   linenoiseHistoryLoad(linenoise_history_path.string().c_str());
   linenoiseSetCompletionCallback([](const char* prefix, linenoiseCompletions* lc)
                                  {
                                    static const char* examples[] =
                                      {"help", "info",
-                                      "quit", "sensor", "firmware", "set", "get",
+                                      "quit", "exit", "sensor", "firmware", "set", "get",
                                       NULL};
                                    size_t i;
                                    for (i = 0;  examples[i] != NULL; ++i) {
@@ -127,24 +126,24 @@ int main(int argc, char **argv){
     if (result == NULL) {
       break;
     }    
-    if ( std::regex_match(result, std::regex("\\s*(quit)\\s*")) ){
-      printf("quiting \n");
+
+    if (std::regex_match(result, std::regex("\\s*(quit)|(exit)|(.q)\\s*")) ){
       linenoiseHistoryAdd(result);
       free(result);
+      linenoiseHistorySave(linenoise_history_path.string().c_str());
       break;
     }
     else if ( std::regex_match(result, std::regex("\\s*(help)\\s*")) ){
       fprintf(stdout, "%s", help_usage_linenoise.c_str());
-      linenoiseHistoryAdd(result);
-      free(result);
-      break;
     }
-
-    else if ( std::regex_match(result, std::regex("\\s*(sensor)\\s+(set)\\s+(\\w+)\\s+(?:(0[Xx])?([0-9]+))\\s*")) ){
+    // else if ( std::regex_match(result, std::regex("\\s*(sensor)\\s+(set)\\s+(\\w+)\\s+(?:(0[Xx])?([0-9]+))\\s*")) ){
+    else if ( std::regex_match(result, std::regex("\\s*(sensor)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*")) ){
       std::cmatch mt;
-      std::regex_match(result, mt, std::regex("\\s*(sensor)\\s+(set)\\s+(\\w+)\\s+(?:(0[Xx])?([0-9]+))\\s*"));
-      std::string name = mt[3].str();
-      uint64_t value = std::stoull(mt[5].str(), 0, mt[4].str().empty()?10:16);
+      std::regex_match(result, mt, std::regex("\\s*(sensor)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*"));
+      std::string  name  = mt[3].str();
+      uint64_t value = Frontend::String2Uint64(mt[4].str());
+      fprintf(stderr, "%s = %u, %#x\n", name.c_str(), value, value);
+      
       fw.SetSensorRegister(name, value);
     }
     else if ( std::regex_match(result, std::regex("\\s*(sensor)\\s+(get)\\s+(\\w+)\\s*")) ){
@@ -170,16 +169,14 @@ int main(int argc, char **argv){
       fprintf(stderr, "%s = %u, %#x\n", name.c_str(), value, value);
     }
     else if (!strncmp(result, "info", 5)){
-      uint32_t ip0 = fw.GetFirmwareRegister("IP0");
-      uint32_t ip1 = fw.GetFirmwareRegister("IP1");
-      uint32_t ip2 = fw.GetFirmwareRegister("IP2");
-      uint32_t ip3 = fw.GetFirmwareRegister("IP3");
-      std::cout<<"\n\ncurrent ip  " <<ip0<<":"<<ip1<<":"<<ip2<<":"<<ip3<<"\n\n"<<std::endl;
+      
     }
+
     linenoiseHistoryAdd(result);
     free(result);
+    linenoiseHistorySave(linenoise_history_path.string().c_str());
+    linenoiseHistoryFree();
+    linenoiseHistoryLoad(linenoise_history_path.string().c_str());
   }
-
-  linenoiseHistorySave(linenoise_history_path.string().c_str());
   linenoiseHistoryFree();
 }
