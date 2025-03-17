@@ -466,7 +466,7 @@
 	    "address":"0b11110",
 	    "mask":"0b00000001",
 	    "mode":"rw"
-	}
+	},
 	{
 	    "name":"RESERVED13N15_8",
 	    "address":"0b11111",
