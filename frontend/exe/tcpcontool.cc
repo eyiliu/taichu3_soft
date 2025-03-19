@@ -11,7 +11,7 @@
 #include <future>
 #include <thread>
 #include <regex>
-
+#include <atomic>
 
 #include <fcntl.h>
 #include <stdlib.h>
@@ -59,6 +59,9 @@ example:
    > stop
 )"
  );
+
+
+static  std::atomic_size_t  ga_dataFrameN = 0;
 
 
 std::string TimeNowString(const std::string& format){
@@ -253,7 +256,7 @@ int main(int argc, char **argv){
     if ( std::regex_match(result, std::regex("\\s*(help)\\s*")) ){
       fprintf(stdout, "%s", help_usage_linenoise.c_str());
     }
-    else if ( std::regex_match(result, std::regex("\\s*(quit|exit)\\s*")) ){
+    else if ( std::regex_match(result, std::regex("\\s*(quit)|(exit)|(.q)\\s*")) ){
       printf("quiting \n");
       break;
     }
@@ -311,7 +314,8 @@ uint64_t AsyncWatchDog(){
   auto tp_run_begin = std::chrono::system_clock::now();
   auto tp_old = tp_run_begin;
   size_t st_old_dataFrameN = 0;
-
+  ga_dataFrameN = 0;
+  
   while(!g_watch_done){
     std::this_thread::sleep_for(std::chrono::seconds(1));
     auto tp_now = std::chrono::system_clock::now();
@@ -319,16 +323,16 @@ uint64_t AsyncWatchDog(){
     std::chrono::duration<double> dur_accu_sec = tp_now - tp_run_begin;
     double sec_period = dur_period_sec.count();
     double sec_accu = dur_accu_sec.count();
-    // size_t st_dataFrameN = ga_dataFrameN;
-    // double st_hz_pack_accu = st_dataFrameN / sec_accu;
-    // double st_hz_pack_period = (st_dataFrameN-st_old_dataFrameN) / sec_period;
+    size_t st_dataFrameN = ga_dataFrameN;
+    double st_hz_pack_accu = st_dataFrameN / sec_accu;
+    double st_hz_pack_period = (st_dataFrameN-st_old_dataFrameN) / sec_period;
 
     tp_old = tp_now;
-    // st_old_dataFrameN= st_dataFrameN;
-    // std::fprintf(stdout, "                  ev_accu(%8.2f hz) ev_trans(%8.2f hz) last_id(%8.2hu)\r",st_hz_pack_accu, st_hz_pack_period, st_lastTriggerId);
-    // std::fflush(stdout);
+    st_old_dataFrameN= st_dataFrameN;
+    std::fprintf(stdout, "                  ev_accu(%8.2f hz) ev_trans(%8.2f hz)\r",st_hz_pack_accu, st_hz_pack_period);
+    std::fflush(stdout);
   }
-  // std::fprintf(stdout, "\n\n");
+  std::fprintf(stdout, "\n\n");
   return 0;
 }
 
@@ -346,7 +350,7 @@ uint64_t AsyncDataSave(std::FILE *p_fd, daqb *p_daqb){
     uint16_t y = pack->yrow;
     uint16_t tsc = pack->tschip;
     uint32_t tsf = pack->tsfpga;
-
+    
     std::fprintf(p_fd, "%hu  %hu  %hu  %lu \n", x, y, tsc, tsf);
     std::fflush(p_fd);
   }
