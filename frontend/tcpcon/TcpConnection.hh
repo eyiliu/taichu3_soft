@@ -32,10 +32,10 @@ public:
   };
 
 private:
-  void updatelength(bool = false){m_len =4;}; //for fixed length
+  void updatelength(bool = false){m_len =8;}; //for fixed length
   //check 1st pack format in updatelength
   
-  size_t m_len{4};
+  size_t m_len{8};
   std::string m_buf{""};
 };
 

@@ -62,16 +62,16 @@ example:
 
 
 static  std::atomic_size_t  ga_dataFrameN = 0;
+static  std::atomic_size_t  ga_dataFrameN_valid = 0;
 
 
-std::string TimeNowString(const std::string& format){
-    std::time_t time_now = std::time(nullptr);
-    std::string str_buffer(100, char(0));
-    size_t n = std::strftime(&str_buffer[0], sizeof(str_buffer.size()),
-                             format.c_str(), std::localtime(&time_now));
-    str_buffer.resize(n?(n-1):0);
-    return str_buffer;
+std::string getnowstring(){
+  char buffer[80];
+  std::time_t t = std::time(nullptr);
+  size_t n = std::strftime(buffer, sizeof(buffer), "%FT%H%M%S%Z", std::localtime(&t));
+  return std::string(buffer, n);
 }
+
 
 bool check_and_create_folder(std::filesystem::path path_dir){
 
@@ -265,9 +265,13 @@ int main(int argc, char **argv){
       daqbup->daq_reset();
       g_data_done = 1;
       if(fut_async_data.valid()){
-        fut_async_data.get();
-
+        fut_async_data.get();	
       }
+
+      if(fut_async_watch.valid()){
+        fut_async_data.get();
+      }
+
     }
     else if ( std::regex_match(result, std::regex("\\s*(conf)\\s*")) ){
       printf("conf\n");
@@ -275,9 +279,10 @@ int main(int argc, char **argv){
     }
     else if ( std::regex_match(result, std::regex("\\s*(start)\\s*")) ){
       printf("start\n");
-      std::string name_datafile = std::string("data_")+TimeNowString("%y%m%d%H%M%S")+std::string(".dat");
+      std::string name_datafile = std::string("data_")+getnowstring()+std::string(".dat");
       std::filesystem::path file_data_path = data_folder_path_abs/name_datafile;
       fp_data = create_and_open_file(file_data_path);
+      fut_async_watch = std::async(std::launch::async, &AsyncWatchDog);
       fut_async_data = std::async(std::launch::async, &AsyncDataSave, fp_data, daqbup.get());
       daqbup->daq_start_run();
     }
@@ -311,10 +316,14 @@ int main(int argc, char **argv){
 }
 
 uint64_t AsyncWatchDog(){
+  ga_dataFrameN = 0;
+  ga_dataFrameN_valid = 0;
+
   auto tp_run_begin = std::chrono::system_clock::now();
   auto tp_old = tp_run_begin;
   size_t st_old_dataFrameN = 0;
-  ga_dataFrameN = 0;
+  size_t st_old_dataFrameN_valid = 0;
+    
   
   while(!g_watch_done){
     std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -323,13 +332,23 @@ uint64_t AsyncWatchDog(){
     std::chrono::duration<double> dur_accu_sec = tp_now - tp_run_begin;
     double sec_period = dur_period_sec.count();
     double sec_accu = dur_accu_sec.count();
+
     size_t st_dataFrameN = ga_dataFrameN;
     double st_hz_pack_accu = st_dataFrameN / sec_accu;
     double st_hz_pack_period = (st_dataFrameN-st_old_dataFrameN) / sec_period;
+    
+    size_t st_dataFrameN_valid = ga_dataFrameN_valid;
+    double st_hz_pack_accu_valid = st_dataFrameN_valid / sec_accu;
+    double st_hz_pack_period_valid = (st_dataFrameN_valid-st_old_dataFrameN_valid) / sec_period;
 
+    
+    
     tp_old = tp_now;
     st_old_dataFrameN= st_dataFrameN;
-    std::fprintf(stdout, "                  ev_accu(%8.2f hz) ev_trans(%8.2f hz)\r",st_hz_pack_accu, st_hz_pack_period);
+    st_old_dataFrameN_valid= st_dataFrameN_valid;
+    std::fprintf(stdout,
+		 "       ev_accu(%8.2f hz) ev_trans(%8.2f hz) ev_valid_accu(%8.2f hz) ev_valid_trans(%8.2f hz) ev_valid(%llu)\r",
+		 st_hz_pack_accu, st_hz_pack_period, st_hz_pack_accu_valid, st_hz_pack_period_valid, st_dataFrameN_valid);
     std::fflush(stdout);
   }
   std::fprintf(stdout, "\n\n");
@@ -350,8 +369,15 @@ uint64_t AsyncDataSave(std::FILE *p_fd, daqb *p_daqb){
     uint16_t y = pack->yrow;
     uint16_t tsc = pack->tschip;
     uint32_t tsf = pack->tsfpga;
+
+    ga_dataFrameN++;
+
+    if(pack->CheckDataPack()){
+      ga_dataFrameN_valid++;
+      std::fprintf(p_fd, "%hu  %hu  %hu  %lu \n", x, y, tsc, tsf);
+    }
     
-    std::fprintf(p_fd, "%hu  %hu  %hu  %lu \n", x, y, tsc, tsf);
+
     std::fflush(p_fd);
   }
 

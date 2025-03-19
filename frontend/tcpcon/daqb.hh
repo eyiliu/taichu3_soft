@@ -22,25 +22,42 @@ struct DataPack{
   uint8_t  pattern;
   uint8_t  idchip;
   uint32_t tsfpga;
-
+  uint64_t raw;
+  
   static int MakeDataPack(const std::string& str, DataPack& pack){
-    if(str.size()!=4){
+    if(str.size()!=8){
       return -1;
     }
+
+    pack.raw = *reinterpret_cast<const uint64_t*>(str.data());
     uint64_t v  = BE64TOH(*reinterpret_cast<const uint64_t*>(str.data()));
+    
+    
     pack.pattern =  v & 0xf;
-    pack.yrow    = (v & 0x3ff)>> 4;
-    pack.xcol    = (v & 0x1ff)>> (4+10);
-    pack.tschip  = (v & 0xff)>> (4+10+9);
-    pack.tsfpga  = (v & 0xfffffff)>> (4+10+9+8);
-    pack.isvalid = (v & 0x1)>> (4+10+9+8+28);
-    pack.idchip  = (v & 0xf)>> (4+10+9+8+28+1);
+    pack.yrow    = (v>> 4) & 0x3ff;
+    pack.xcol    = (v>> (4+10)) & 0x1ff;
+    pack.tschip  = (v>> (4+10+9)) & 0xff;
+    pack.tsfpga  = (v>> (4+10+9+8)) & 0xfffffff;
+    pack.isvalid = (v>> (4+10+9+8+28)) & 0x1;
+    pack.idchip  = (v>> (4+10+9+8+28+1)) & 0xf;
     return 4;
   }
   
   bool CheckDataPack(){
     return (idchip == 0b1101) && (isvalid == 1) && (pattern == 0b0000);
   };
+
+  bool testData(){
+    uint64_t Bv  = BE64TOH(raw);;
+    uint64_t Lv  = LE64TOH(raw);;
+
+    std::bitset<64> Bvbit(Bv);
+    std::cout<< "BE " << "iiiivffffffffffffffffffffffffffffsssssssscccccccccrrrrrrrrrrpppp"<<std::endl;
+    std::cout<< "BE " << Bvbit <<std::endl;
+  
+    return 0;
+  }
+  
 };
 
 using daqb_packSP = std::shared_ptr<DataPack>;

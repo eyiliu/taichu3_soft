@@ -84,6 +84,7 @@ void daqb::daq_conf_default(){
 }
 
 int daqb::perConnProcessRecvMesg(void* pconn, const std::string& str){
+  static size_t s_n = 0;
   if(!m_isDataAccept){
     std::cout<< "msg is dropped"<<std::endl;
     return 0;
@@ -92,7 +93,17 @@ int daqb::perConnProcessRecvMesg(void* pconn, const std::string& str){
   daqb_packSP df(new DataPack);
 
   DataPack::MakeDataPack(str, *df);
+  s_n ++;
 
+  
+  if(s_n%1000000 <5 ){
+    if(s_n%1000000==0){
+      std::cout<<"======="<<std::endl;
+    }
+    df->testData();
+  }
+  
+  
   m_st_n_ev_input_now ++;
   uint64_t next_p_ring_write = m_count_ring_write % m_size_ring;
   if(next_p_ring_write == m_hot_p_read){

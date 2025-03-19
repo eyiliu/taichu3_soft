@@ -12,6 +12,83 @@
 
 #include "TcpConnection.hh"
 
+
+
+
+
+
+
+namespace{
+  std::string binToHexString(const char *bin, int len){
+    constexpr char hexmap[] = {'0', '1', '2', '3', '4', '5', '6', '7',
+                               '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+    const unsigned char* data = (const unsigned char*)(bin);
+    std::string s(len * 2, ' ');
+    for (int i = 0; i < len; ++i) {
+      s[2 * i]     = hexmap[(data[i] & 0xF0) >> 4];
+      s[2 * i + 1] = hexmap[data[i] & 0x0F];
+    }
+    return s;
+  }
+
+  std::string hexToBinString(const char *hex, int len){
+    if(len%2){
+      throw;
+    }
+    size_t blen  = len/2;
+    const unsigned char* data = (const unsigned char*)(hex);
+    std::string s(blen, ' ');
+    for (int i = 0; i < blen; ++i){
+      unsigned char d0 = data[2*i];
+      unsigned char d1 = data[2*i+1];
+      unsigned char v0;
+      unsigned char v1;
+      if(d0>='0' && d0<='9'){
+        v0 = d0-'0';
+      }
+      else if(d0>='a' && d0<='f'){
+        v0 = d0-'a'+10;
+      }
+      else if(d0>='A' && d0<='F'){
+        v0 = d0-'A'+10;
+      }
+      else{
+        std::fprintf(stderr, "wrong hex string\n");
+        throw;
+      }
+      if(d1>='0' && d1<='9'){
+        v1 = d1-'0';
+      }
+      else if(d1>='a' && d1<='f'){
+        v1 = d1-'a'+10;
+      }
+      else if(d1>='A' && d1<='F'){
+        v1 = d1-'A'+10;
+      }
+      else{
+        std::fprintf(stderr, "wrong hex string\n");
+        throw;
+      }
+      s[i]= (v0<<4) + v1;
+    }
+    return s;
+  }
+
+  std::string binToHexString(const std::string& bin){
+    return binToHexString(bin.data(), bin.size());
+  }
+
+  std::string hexToBinString(const std::string& hex){
+    return hexToBinString(hex.data(), hex.size());
+  }
+
+}
+
+
+
+
+
+
 TcpConnection::TcpConnection(int sockfd, FunProcessMessage recvFun,  FunSendDeamon sendFun, void* pobj){
   m_sockfd = sockfd;
   if(m_sockfd>=0){
@@ -63,7 +140,7 @@ uint64_t TcpConnection::threadConnRecv(FunProcessMessage processMessage, void* p
     }
 
     int count = recv(m_sockfd, buffer, (unsigned int)MAX_BUFFER_SIZE,0);
-    if(count== 0 && errno != EWOULDBLOCK && errno != EAGAIN){
+    if(count == 0 && errno != EWOULDBLOCK && errno != EAGAIN){
       m_isAlive = false; // closed connection
       std::printf("connection is closed by remote peer\n");
       break;
@@ -71,7 +148,6 @@ uint64_t TcpConnection::threadConnRecv(FunProcessMessage processMessage, void* p
     if(count == 0){
       continue;
     }
-
     
     m_tcpbuf.append(count, buffer);    
     while (m_tcpbuf.havepacket()){
