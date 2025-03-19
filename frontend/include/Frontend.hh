@@ -33,6 +33,8 @@ public:
   void SetSensorRegister(const std::string& name, uint64_t value);
   uint64_t GetSensorRegister(const std::string& name);  
 
+  void SetSensorRegsters(const std::map<std::string, uint64_t>& mapRegValue );
+  
 private:
   void  WriteByte(uint64_t address, uint64_t value);
   uint64_t ReadByte(uint64_t address);
@@ -61,8 +63,8 @@ public:
   }
 
   template<typename ... Args>
-  static std::size_t DebugFormatPrint(std::ostream &os, const std::string& format, Args ... args ){
-    return 0;
+  static std::size_t DebugFormatPrint(std::ostream &os, const std::string& format, Args ... args ){  
+    // return 0;
     std::size_t size = snprintf( nullptr, 0, format.c_str(), args ... ) + 1;
     std::unique_ptr<char[]> buf( new char[ size ] ); 
     std::snprintf( buf.get(), size, format.c_str(), args ... );
