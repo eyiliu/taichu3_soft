@@ -33,8 +33,11 @@ public:
   void SetSensorRegister(const std::string& name, uint64_t value);
   uint64_t GetSensorRegister(const std::string& name);  
 
-  void SetSensorRegsters(const std::map<std::string, uint64_t>& mapRegValue );
-  
+  void SetSensorRegisters(const std::map<std::string, uint64_t>& mapRegValue );
+
+  void SetBoardDAC(uint32_t ch, double voltage);
+  uint64_t SensorRegAddr2GlobalRegAddr(uint64_t addr);
+
 private:
   void  WriteByte(uint64_t address, uint64_t value);
   uint64_t ReadByte(uint64_t address);

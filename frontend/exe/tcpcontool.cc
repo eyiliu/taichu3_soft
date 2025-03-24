@@ -357,7 +357,6 @@ uint64_t AsyncWatchDog(){
 
 
 uint64_t AsyncDataSave(std::FILE *p_fd, daqb *p_daqb){
-
   while(!g_watch_done){
     auto pack = p_daqb->Front();
     if(!pack){
@@ -377,7 +376,6 @@ uint64_t AsyncDataSave(std::FILE *p_fd, daqb *p_daqb){
       std::fprintf(p_fd, "%hu  %hu  %hu  %lu \n", x, y, tsc, tsf);
     }
     
-
     std::fflush(p_fd);
   }
 

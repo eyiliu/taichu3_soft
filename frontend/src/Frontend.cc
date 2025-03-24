@@ -5,8 +5,6 @@
 
 #include "rbcp.hh"
 
-#define OFFSET_ADDR_SENSOR_IN_FIRMWARE 0x00010000
-
 uint8_t LeastNoneZeroOffset(const uint64_t& value){
   static const uint8_t bitmap[]=
     {0, 0, 1, 39, 2, 15, 40, 23, 3, 12, 16, 59, 41, 19, 24, 54, 4,
@@ -105,7 +103,7 @@ void Frontend::SetFirmwareRegister(const std::string& name, uint64_t value){
   }
 }
 
-void Frontend::SetSensorRegsters(const std::map<std::string, uint64_t>& mapRegValue ){
+void Frontend::SetSensorRegisters(const std::map<std::string, uint64_t>& mapRegValue ){
   static const std::string array_name("SENSOR_REG");
   auto& json_array = m_jsdoc_sensor[array_name];
   if(json_array.Empty()){
@@ -174,10 +172,10 @@ void Frontend::SetSensorRegsters(const std::map<std::string, uint64_t>& mapRegVa
     
     uint64_t value_ori = 0;
     if(mapRegReadable[address]){
-      value_ori = ReadByte(OFFSET_ADDR_SENSOR_IN_FIRMWARE + address);
+      value_ori = ReadByte(SensorRegAddr2GlobalRegAddr(address));
     }
     
-    WriteByte(OFFSET_ADDR_SENSOR_IN_FIRMWARE + address, ((value<<offset) & mask) | (value_ori & ~mask) );
+    WriteByte(SensorRegAddr2GlobalRegAddr(address), ((value<<offset) & mask) | (value_ori & ~mask) );
   }
 
 
@@ -211,7 +209,6 @@ void Frontend::SetSensorRegister(const std::string& name, uint64_t value){
     uint64_t mask = String2Uint64(json_mask.GetString());    
     uint8_t offset = LeastNoneZeroOffset(mask);
     DebugFormatPrint(std::cout, "INFO<%s>:sensor reg  name=%s  mask=%#08x bitoffset=%u \n", __func__, name.c_str(),  mask, offset);
-
     
     auto& json_mode = json_reg["mode"];
     if(!json_mode.IsString()){
@@ -221,10 +218,10 @@ void Frontend::SetSensorRegister(const std::string& name, uint64_t value){
 
     uint64_t value_ori = 0;
     if(std::string(json_mode.GetString()).find('r')||std::string(json_mode.GetString()).find('R')){
-      value_ori = ReadByte(OFFSET_ADDR_SENSOR_IN_FIRMWARE + address);
+      value_ori = ReadByte(SensorRegAddr2GlobalRegAddr(address));
     }
     
-    WriteByte(OFFSET_ADDR_SENSOR_IN_FIRMWARE + address, ((value<<offset) & mask) | (value_ori & ~mask) );
+    WriteByte(SensorRegAddr2GlobalRegAddr(address), ((value<<offset) & mask) | (value_ori & ~mask) );
     
     flag_found_reg = true;
     break;
@@ -233,6 +230,23 @@ void Frontend::SetSensorRegister(const std::string& name, uint64_t value){
     FormatPrint(std::cerr, "ERROR<%s>: unable to find register<%s> in array<%s>\n", __func__, name.c_str(), array_name.c_str());
     throw;
   }
+}
+
+uint64_t Frontend::SensorRegAddr2GlobalRegAddr(uint64_t addr){
+
+  uint64_t addr_base = 0x00010000;
+  
+  // wrap 5bit addr into    0b10xxxxx0
+  uint64_t addr_wrap =      0b10000000;  
+  uint64_t addr_sensor = addr;
+  uint64_t addr_sensor_mask = 0b11111;
+  uint64_t addr_sensor_offset = 1;
+    
+  addr_wrap = addr_wrap | ((addr_sensor & addr_sensor_mask) <<addr_sensor_offset);
+
+  uint64_t global_addr = addr_base + addr_wrap;
+
+  return global_addr;
 }
 
 
@@ -287,7 +301,7 @@ uint64_t Frontend::GetSensorRegister(const std::string& name){
       throw;
     }     
     uint64_t address = String2Uint64(json_addr.GetString());
-    uint64_t valueRead  = ReadByte(OFFSET_ADDR_SENSOR_IN_FIRMWARE + address);
+    uint64_t valueRead  = ReadByte(SensorRegAddr2GlobalRegAddr(address));
     
     auto& json_mask = json_reg["mask"];
     if(!json_mask.IsString()){
@@ -308,6 +322,32 @@ uint64_t Frontend::GetSensorRegister(const std::string& name){
   }  
   DebugFormatPrint(std::cout, "INFO<%s>: %s( name=%s ) return value=%#016x \n", __func__, __func__, name.c_str(), value);
   return value;  
+}
+
+void Frontend::SetBoardDAC(uint32_t ch, double voltage){
+  //da8004 
+  double ref_voltage = 2.5;
+  uint32_t dacn =  0xffff * voltage/ref_voltage;
+  uint32_t dacn_mask = 0xffff;
+  uint32_t dacn_offset = 4;
+
+  uint32_t ch_mask = 0b1111;
+  uint32_t ch_offset = 20;
+  
+  uint32_t cmd = 0b0010;
+  uint32_t cmd_mask = 0b1111; 
+  uint32_t cmd_offset = 24;
+  
+  uint32_t cmdword = ((dacn&dacn_mask)<<dacn_offset) | ((ch&ch_mask)<<ch_offset) | ((cmd&cmd_mask)<<cmd_offset);
+  SetFirmwareRegister("DAC_NSYNC", 1);
+  SetFirmwareRegister("DAC_NSYNC", 0);
+  for(int i=31; i>=0; i++){ //MSB first
+    SetFirmwareRegister("DAC_SCLK", 0);
+    SetFirmwareRegister("DAC_DIN", ((cmdword>>i) & 0b1)?1:0 );
+    SetFirmwareRegister("DAC_SCLK", 1);
+  }
+  SetFirmwareRegister("DAC_SCLK", 0);
+  SetFirmwareRegister("DAC_NSYNC", 1);
 }
 
 std::string Frontend::LoadFileToString(const std::string& p){
