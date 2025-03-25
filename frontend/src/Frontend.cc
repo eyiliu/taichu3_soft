@@ -341,7 +341,7 @@ void Frontend::SetBoardDAC(uint32_t ch, double voltage){
   uint32_t cmdword = ((dacn&dacn_mask)<<dacn_offset) | ((ch&ch_mask)<<ch_offset) | ((cmd&cmd_mask)<<cmd_offset);
   SetFirmwareRegister("DAC_NSYNC", 1);
   SetFirmwareRegister("DAC_NSYNC", 0);
-  for(int i=31; i>=0; i++){ //MSB first
+  for(int i=31; i>=0; i--){ //MSB first
     SetFirmwareRegister("DAC_SCLK", 0);
     SetFirmwareRegister("DAC_DIN", ((cmdword>>i) & 0b1)?1:0 );
     SetFirmwareRegister("DAC_SCLK", 1);

@@ -109,7 +109,7 @@ int main(int argc, char **argv){
   linenoiseSetCompletionCallback([](const char* prefix, linenoiseCompletions* lc)
                                  {
                                    static const char* examples[] =
-                                     {"help", "info", "start", "dac"
+                                     {"help", "info", "start", "dac",
                                       "quit", "exit", "sensor", "firmware", "set", "get",
                                       NULL};
                                    size_t i;
@@ -174,6 +174,7 @@ int main(int argc, char **argv){
       uint32_t ch_n = toupper(mt[3].str()[0]) - 'A';
       double value = std::stod(mt[4].str());
 
+      std::cout<< "set board dac "<<ch_n << " " << value << " v"<<std::endl;
       fw.SetBoardDAC(ch_n, value);
       
       //        N  N  N RW CM CM CM CM CH CH CH CH  D  D  D  D  D  D  D  D  D  D  D  D  D  D  D  D  M  M  M  M
@@ -188,8 +189,6 @@ int main(int argc, char **argv){
       
     }
     else if(std::regex_match(result, std::regex("\\s*(start)\\s*"))){
-
-
       fw.SetFirmwareRegister("CHIP_MODE", 0);
       
       fw.SetFirmwareRegister("CHIP_RESTN_CLEAR", 1);
@@ -228,10 +227,11 @@ int main(int argc, char **argv){
       fw.SetSensorRegisters({{"REG_CDAC_8NA_TRIM", 0}, {"REG_CDAC_8NA5", 0}});      
       
     }
-    
-    
     else if (!strncmp(result, "info", 5)){
       
+    }
+    else{
+      std::cout<< "unknown command"<<std::endl;
     }
 
     linenoiseHistoryAdd(result);
