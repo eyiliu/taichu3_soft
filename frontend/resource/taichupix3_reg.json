@@ -161,11 +161,67 @@
 	    "default":"0b00000111"
 	},
 	{
+	    "name":"ENBGR",
+	    "address":"0b01000",
+	    "mask":"0b00000001",
+	    "mode":"rw",
+	    "default":"0b1"
+	},
+	{
+	    "name":"REG_BGR_OFFSET",
+	    "address":"0b01000",
+	    "mask":"0b00001110",
+	    "mode":"rw",
+	    "default":"0b011"
+	},
+	{
+	    "name":"ENIBG",
+	    "address":"0b01000",
+	    "mask":"0b00010000",
+	    "mode":"rw",
+	    "default":"0b0"
+	},
+	{
+	    "name":"REG_CDAC0_2_0",
+	    "address":"0b01000",
+	    "mask":"0b11100000",
+	    "mode":"rw",
+	    "default":"0b000"
+	},
+	{
 	    "name":"DAC_REG15_8",
 	    "address":"0b01001",
 	    "mask":"0b11111111",
 	    "mode":"rw",
 	    "default":"0b01100000"
+	},
+	{
+	    "name":"REG_CDAC0_7_3",
+	    "address":"0b01001",
+	    "mask":"0b00011111",
+	    "mode":"rw",
+	    "default":"0b00000"
+	},	
+	{
+	    "name":"EN_CDAC0",
+	    "address":"0b01001",
+	    "mask":"0b00100000",
+	    "mode":"rw",
+	    "default":"0b1"
+	},
+	{
+	    "name":"EN_CDAC_T0",
+	    "address":"0b01001",
+	    "mask":"0b01000000",
+	    "mode":"rw",
+	    "default":"0b1"
+	},
+	{
+	    "name":"REG_CDAC1_0",
+	    "address":"0b01001",
+	    "mask":"0b10000000",
+	    "mode":"rw",
+	    "default":"0b0"
 	},
 	{
 	    "name":"DAC_REG23_16",
@@ -175,19 +231,74 @@
 	    "default":"0b10000000"
 	},
 	{
+	    "name":"REG_CDAC1_7_1",
+	    "address":"0b01010",
+	    "mask":"0b01111111",
+	    "mode":"rw",
+	    "default":"0b0000000"
+	},
+	{
+	    "name":"EN_CDAC1",
+	    "address":"0b01010",
+	    "mask":"0b10000000",
+	    "mode":"rw",
+	    "default":"0b1"
+	},
+	{
 	    "name":"DAC_REG31_24",
 	    "address":"0b01011",
 	    "mask":"0b11111111",
 	    "mode":"rw",
 	    "default":"0b00000001"
 	},
-	
+	{
+	    "name":"EN_CDAC_T1",
+	    "address":"0b01011",
+	    "mask":"0b00000001",
+	    "mode":"rw",
+	    "default":"0b1"
+	},
+	{
+	    "name":"REG_CDAC2_6_0",
+	    "address":"0b01011",
+	    "mask":"0b11111110",
+	    "mode":"rw",
+	    "default":"0b0000000"
+	},
 	{
 	    "name":"DAC_REG39_32",
 	    "address":"0b01100",
 	    "mask":"0b11111111",
 	    "mode":"rw",
 	    "default":"0b00000110"
+	},
+	{
+	    "name":"REG_CDAC2_7",
+	    "address":"0b01100",
+	    "mask":"0b00000001",
+	    "mode":"rw",
+	    "default":"0b0"
+	},
+	{
+	    "name":"EN_CDAC2",
+	    "address":"0b01100",
+	    "mask":"0b00000010",
+	    "mode":"rw",
+	    "default":"0b1"
+	},
+	{
+	    "name":"EN_CDAC_T2",
+	    "address":"0b01100",
+	    "mask":"0b00000100",
+	    "mode":"rw",
+	    "default":"0b1"
+	},
+	{
+	    "name":"REG_VDAC0_4_0",
+	    "address":"0b01100",
+	    "mask":"0b11111000",
+	    "mode":"rw",
+	    "default":"0b00000"
 	},
 	{
 	    "name":"DAC_REG47_40",
@@ -197,11 +308,54 @@
 	    "default":"0b00000000"
 	},
 	{
+	    "name":"REG_VDAC0_9_5",
+	    "address":"0b01101",
+	    "mask":"0b00011111",
+	    "mode":"rw",
+	    "default":"0b00000"
+	},
+	{
+	    "name":"REG_VDAC0_C2_0",
+	    "address":"0b01101",
+	    "mask":"0b11100000",
+	    "mode":"rw",
+	    "default":"0b000"
+	},
+	{
 	    "name":"DAC_REG55_48",
 	    "address":"0b01110",
 	    "mask":"0b11111111",
 	    "mode":"rw",
 	    "default":"0b00011110"
+	},
+	{
+	    "name":"REG_VDAC0_C4_3",
+	    "address":"0b01110",
+	    "mask":"0b00000011",
+	    "mode":"rw",
+	    "default":"0b10"
+	},
+
+	{
+	    "name":"REG_VDAC0_T",
+	    "address":"0b01110",
+	    "mask":"0b00001100",
+	    "mode":"rw",
+	    "default":"0b11"
+	},
+	{
+	    "name":"EN_VDAC0",
+	    "address":"0b01110",
+	    "mask":"0b00010000",
+	    "mode":"rw",
+	    "default":"0b1"
+	},
+	{
+	    "name":"REG_VDAC1_2_0",
+	    "address":"0b01110",
+	    "mask":"0b11100000",
+	    "mode":"rw",
+	    "default":"0b000"
 	},
 	{
 	    "name":"DAC_REG63_56",
@@ -210,7 +364,20 @@
 	    "mode":"rw",
 	    "default":"0b00000000"
 	},
-	
+	{
+	    "name":"REG_VDAC1_9_3",
+	    "address":"0b01111",
+	    "mask":"0b01111111",
+	    "mode":"rw",
+	    "default":"0b0000000"
+	},
+	{
+	    "name":"REG_VDAC1_C0",
+	    "address":"0b01111",
+	    "mask":"0b10000000",
+	    "mode":"rw",
+	    "default":"0b0"
+	},
 	{
 	    "name":"DAC_REG71_64",
 	    "address":"0b10000",
@@ -219,7 +386,42 @@
 	    "default":"0b01111000"
 	},
 	{
+	    "name":"REG_VDAC1_C4_1",
+	    "address":"0b10000",
+	    "mask":"0b00001111",
+	    "mode":"rw",
+	    "default":"0b1000"
+	},
+	{
+	    "name":"REG_VDAC1_T",
+	    "address":"0b10000",
+	    "mask":"0b00110000",
+	    "mode":"rw",
+	    "default":"0b11"
+	},
+	{
+	    "name":"EN_VADC1",
+	    "address":"0b10000",
+	    "mask":"0b01000000",
+	    "mode":"rw",
+	    "default":"0b1"
+	},
+	{
+	    "name":"REG_VDAC2_0",
+	    "address":"0b10000",
+	    "mask":"0b10000000",
+	    "mode":"rw",
+	    "default":"0b0"
+	},
+	{
 	    "name":"DAC_REG79_72",
+	    "address":"0b10001",
+	    "mask":"0b11111111",
+	    "mode":"rw",
+	    "default":"0b00000000"
+	},
+	{
+	    "name":"REG_VDAC2_8_1",
 	    "address":"0b10001",
 	    "mask":"0b11111111",
 	    "mode":"rw",
@@ -233,13 +435,47 @@
 	    "default":"0b11100000"
 	},
 	{
+	    "name":"REG_VDAC2_9",
+	    "address":"0b10010",
+	    "mask":"0b00000001",
+	    "mode":"rw",
+	    "default":"0b0"
+	},
+	{
+	    "name":"REG_VDAC2_C",
+	    "address":"0b10010",
+	    "mask":"0b00111110",
+	    "mode":"rw",
+	    "default":"0b10000"
+	},
+	{
+	    "name":"REG_VDAC2_T",
+	    "address":"0b10010",
+	    "mask":"0b11000000",
+	    "mode":"rw",
+	    "default":"0b11"
+	},
+	{
 	    "name":"DAC_REG95_88",
 	    "address":"0b10011",
 	    "mask":"0b11111111",
 	    "mode":"rw",
 	    "default":"0b00000001"
 	},
-	
+	{
+	    "name":"EN_VDAC2",
+	    "address":"0b10011",
+	    "mask":"0b00000001",
+	    "mode":"rw",
+	    "default":"0b1"
+	},
+	{
+	    "name":"REG_VDAC3_6_0",
+	    "address":"0b10011",
+	    "mask":"0b11111110",
+	    "mode":"rw",
+	    "default":"0b0000000"
+	},
 	{
 	    "name":"DAC_REG103_96",
 	    "address":"0b10100",
@@ -248,13 +484,55 @@
 	    "default":"0b10000000"
 	},
 	{
+	    "name":"REG_VDAC3_9_7",
+	    "address":"0b10100",
+	    "mask":"0b00000111",
+	    "mode":"rw",
+	    "default":"0b000"
+	},
+	{
+	    "name":"REG_VDAC3_C",
+	    "address":"0b10100",
+	    "mask":"0b11111000",
+	    "mode":"rw",
+	    "default":"0b10000"
+	},
+	{
 	    "name":"DAC_REG111_104",
 	    "address":"0b10101",
 	    "mask":"0b11111111",
 	    "mode":"rw",
 	    "default":"0b00000111"
 	},
-
+	{
+	    "name":"REG_VDAC2_T",
+	    "address":"0b10101",
+	    "mask":"0b00000011",
+	    "mode":"rw",
+	    "default":"0b11"
+	},
+	{
+	    "name":"EN_VDAC3",
+	    "address":"0b10101",
+	    "mask":"0b00000100",
+	    "mode":"rw",
+	    "default":"0b1"
+	},
+	{
+	    "name":"REG_MUX",
+	    "address":"0b10101",
+	    "mask":"0b00111000",
+	    "mode":"rw",
+	    "default":"0b000"
+	},
+	{
+	    "name":"REG_MUXO",
+	    "address":"0b10101",
+	    "mask":"0b11000000",
+	    "mode":"rw",
+	    "default":"0b00"
+	},
+	
 	{
 	    "name":"BSEL",
 	    "address":"0b10110",
@@ -284,7 +562,6 @@
 	    "mode":"rw",
 	    "default":"0b0"
 	},
-	
 	{
 	    "name":"DSEL",
 	    "address":"0b10110",
@@ -292,7 +569,6 @@
 	    "mode":"rw",
 	    "default":"0b0"
 	},
-
 	{
 	    "name":"CKESEL",
 	    "address":"0b10110",
@@ -315,23 +591,15 @@
 	    "mode":"rw",
 	    "default":"0b0"
 	},
-
 	{
-	    "name":"DAC_REG114",
+	    "name":"REG_BGR_TC",
 	    "address":"0b10111",
-	    "mask":"0b10000000",
+	    "mask":"0b11000000",
 	    "mode":"rw",
-	    "default":"0b0"
+	    "default":"0b01"
 	},
 	{
-	    "name":"DAC_REG113",
-	    "address":"0b10111",
-	    "mask":"0b01000000",
-	    "mode":"rw",
-	    "default":"0b1"
-	},
-	{
-	    "name":"DAC_REG112",
+	    "name":"BPLDO",
 	    "address":"0b10111",
 	    "mask":"0b00100000",
 	    "mode":"rw",
@@ -409,25 +677,30 @@
 	    "name":"EN_CDAC_8NA",
 	    "address":"0b11100",
 	    "mask":"0b00000100",
-	    "mode":"rw"
+	    "mode":"rw",
+	    "default":"0b1"
+
 	},
 	{
 	    "name":"REG_CDAC_8NA_BGR",
 	    "address":"0b11100",
 	    "mask":"0b00000010",
-	    "mode":"rw"
+	    "mode":"rw",
+	    "default":"0b1"
 	},
 	{
 	    "name":"REG_SEL_CDAC_8NA",
 	    "address":"0b11100",
 	    "mask":"0b00000001",
-	    "mode":"rw"
+	    "mode":"rw",
+	    "default":"0b1"
 	},	
 	{
 	    "name":"REG_CDAC_8NA_TRIM",
 	    "address":"0b11101",
 	    "mask":"0b00000110",
-	    "mode":"rw"
+	    "mode":"rw",
+	    "default":"0b01"
 	},
 	{
 	    "name":"REG_CDAC_8NA5",
@@ -475,5 +748,3 @@
 	}
     ]
 }
-
- 
