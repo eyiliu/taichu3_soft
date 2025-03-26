@@ -65,17 +65,17 @@ class Gpio_reg:
         for i in t:
             code1.append(int(i))
         code2 = code1[5:37]
-        self.writereg(UDP_BASE_ADDR, 0x13, '01')
-        self.writereg(UDP_BASE_ADDR, 0x13, '00')
+        self.writereg(UDP_BASE_ADDR, 0x13, '01')          #FW DAC_NSYNC 1
+        self.writereg(UDP_BASE_ADDR, 0x13, '00')          #FW DAC_NSYNC 0
         for i in range(32):
-            self.writereg(UDP_BASE_ADDR, 0x01, '00')
+            self.writereg(UDP_BASE_ADDR, 0x01, '00')      #FW DAC_SCLK  0
             if code2[i] == 1:
-                self.writereg(UDP_BASE_ADDR, 0x02, '01')
+                self.writereg(UDP_BASE_ADDR, 0x02, '01')  #FW DAC_DIN   1
             else:
-                self.writereg(UDP_BASE_ADDR, 0x02, '00')
-            self.writereg(UDP_BASE_ADDR, 0x01, '01')
-        self.writereg(UDP_BASE_ADDR, 0x01, '00')
-        self.writereg(UDP_BASE_ADDR, 0x13, '01')
+                self.writereg(UDP_BASE_ADDR, 0x02, '00')  #FW DAC_DIN   0
+            self.writereg(UDP_BASE_ADDR, 0x01, '01')      #FW DAC_SCLK  1
+        self.writereg(UDP_BASE_ADDR, 0x01, '00')          #FW DAC_SCLK  0
+        self.writereg(UDP_BASE_ADDR, 0x13, '01')          #FW DAC_NSYNC 1
         
 def enter_to_register(noise_pixels_list, file_address, hit_number_threshold, open_rectangle_list, ITHR, column_level_list):
     array_mask = np.full((512, 1024), '1', dtype=str) #mask原始矩阵
@@ -111,18 +111,18 @@ def enter_to_register(noise_pixels_list, file_address, hit_number_threshold, ope
     
     gpio_reg = Gpio_reg('192.168.10.16')
     gpio_reg.test_chip
-    gpio_reg.writereg(UDP_BASE_ADDR, 0x03, '01')
-    gpio_reg.writereg(UDP_BASE_ADDR, 0x04, '01')
-    gpio_reg.writereg(UDP_BASE_ADDR, 0x03, '00')
-    gpio_reg.writereg(UDP_BASE_ADDR, 0x04, '00')
+    gpio_reg.writereg(UDP_BASE_ADDR, 0x03, '01')  #FW CHIP_RESTN_CLEAR  1
+    gpio_reg.writereg(UDP_BASE_ADDR, 0x04, '01')  #FW CHIP_RESTN_SET    1
+    gpio_reg.writereg(UDP_BASE_ADDR, 0x03, '00')  #FW CHIP_RESTN_CLEAR  0
+    gpio_reg.writereg(UDP_BASE_ADDR, 0x04, '00')  #FW CHIP_RESTN_SET    0
 
-    gpio_reg.writespi(SPI_BASE_ADDR, '10110', '00000010')
-    gpio_reg.writespi(SPI_BASE_ADDR, '00001', '11010000')
-    gpio_reg.writespi(SPI_BASE_ADDR, '10111', '01000000')
+    gpio_reg.writespi(SPI_BASE_ADDR, '10110', '00000010')  #SN  BSEL 0 ISEL1 0 ISEL0 0 EXCKS 0 DSEL 0 CKESEL 0 RCKI (1) RCKO 0    
+    gpio_reg.writespi(SPI_BASE_ADDR, '00001', '11010000')  #SN  TRIGN (1) CPRN (1) DOFREQ 01(d) SMOD 0 CTM 0 SPI_D 0 TMOD 0  
+    gpio_reg.writespi(SPI_BASE_ADDR, '10111', '01000000')  #SN  DAC_REG114 0 DAC_REG113 1(d) DAC_REG112 0 LDO_REG1 0 LDO_REG0 0 C_MASK_EN 0 ENTP 0 EN10B 0  
     ####LSB=1 CML output
-    gpio_reg.writespi(SPI_BASE_ADDR, '11110', '00000100')
-    gpio_reg.writereg(UDP_BASE_ADDR, 0x14, '04')
-    gpio_reg.writereg(UDP_BASE_ADDR, 0x15, 'ff')
+    gpio_reg.writespi(SPI_BASE_ADDR, '11110', '00000100')  #SN  RESERVED13N7_4 0000 RESERVED13N3 0 PSET (1) OISEL 0 OPSEL 0 
+    gpio_reg.writereg(UDP_BASE_ADDR, 0x14, '04')  #FW SER_DELAY        0x04
+    gpio_reg.writereg(UDP_BASE_ADDR, 0x15, 'ff')  #FW FW_SOFT_RESET    0xff
 
     for j in range(0, 1024, 1):
         if(j!=0):
@@ -136,18 +136,18 @@ def enter_to_register(noise_pixels_list, file_address, hit_number_threshold, ope
                 mask_eight_bit = ''
                 for bit_i in range(i*8, i*8+8, 1):
                     mask_eight_bit = mask_eight_bit+(array_mask[bit_i][j])             
-                gpio_reg.writespi(SPI_BASE_ADDR, '00110', mask_eight_bit) 
+                gpio_reg.writespi(SPI_BASE_ADDR, '00110', mask_eight_bit)   #SN PIXELMASK_DATA   
         elif(bit_flag_2!= bit_flag_1): #和上一行不同则配置
             for i in range(0, 64, 1):        
                 mask_eight_bit = ''
                 for bit_i in range(i*8, i*8+8, 1):
-                    mask_eight_bit = mask_eight_bit+(array_mask[bit_i][j])             
-                gpio_reg.writespi(SPI_BASE_ADDR, '00110', mask_eight_bit)         
-        gpio_reg.writespi(SPI_BASE_ADDR, '00111', '00000000')            
+                    mask_eight_bit = mask_eight_bit+(array_mask[bit_i][j])  
+                gpio_reg.writespi(SPI_BASE_ADDR, '00110', mask_eight_bit)   #SN PIXELMASK_DATA      
+        gpio_reg.writespi(SPI_BASE_ADDR, '00111', '00000000')               #SN LOADC_E 0 LOADM_E 0  000000
 
-    gpio_reg.writereg(UDP_BASE_ADDR, 0x0b, '00')
-    gpio_reg.writereg(UDP_BASE_ADDR, 0x0b, '01')
-    gpio_reg.writereg(UDP_BASE_ADDR, 0x0b, '00')
+    gpio_reg.writereg(UDP_BASE_ADDR, 0x0b, '00')    #FW LOAD_M 0 
+    gpio_reg.writereg(UDP_BASE_ADDR, 0x0b, '01')    #FW LOAD_M 1
+    gpio_reg.writereg(UDP_BASE_ADDR, 0x0b, '00')    #FW LOAD_M 0
 
     for j in range(0, 1024, 1):
         if(j!=0):
@@ -160,7 +160,7 @@ def enter_to_register(noise_pixels_list, file_address, hit_number_threshold, ope
             for i in range(0, 64, 1):
                 calen_eight_bit = ''
                 for bit_i in range(i*8, i*8+8, 1):
-                    calen_eight_bit = calen_eight_bit+(array_calen[bit_i][j]) 
+                    calen_eight_bit = calen_eight_bit+(array_calen[bit_i][j])    # bit order flip
                 gpio_reg.writespi(SPI_BASE_ADDR, '00110', calen_eight_bit) 
         elif(bit_flag_2!= bit_flag_1): #和上一行不同则配置 
             for i in range(0, 64, 1):
@@ -170,9 +170,9 @@ def enter_to_register(noise_pixels_list, file_address, hit_number_threshold, ope
                 gpio_reg.writespi(SPI_BASE_ADDR, '00110', calen_eight_bit)         
         gpio_reg.writespi(SPI_BASE_ADDR, '00111', '00000000') 			
 
-    gpio_reg.writereg(UDP_BASE_ADDR, 0x0c, '00')
-    gpio_reg.writereg(UDP_BASE_ADDR, 0x0c, '01')
-    gpio_reg.writereg(UDP_BASE_ADDR, 0x0c, '00')
+    gpio_reg.writereg(UDP_BASE_ADDR, 0x0c, '00')  #FW LOAD_C 0
+    gpio_reg.writereg(UDP_BASE_ADDR, 0x0c, '01')  #FW LOAD_C 1
+    gpio_reg.writereg(UDP_BASE_ADDR, 0x0c, '00')  #FW LOAD_C 0
     
     #列级屏蔽，一次屏蔽一列
     if(len(column_level_list) != 0):
@@ -184,7 +184,7 @@ def enter_to_register(noise_pixels_list, file_address, hit_number_threshold, ope
             for bit_i in range(i*8, i*8+8, 1):
                 column_mask_bit = column_mask_bit+(column_level_array[bit_i])              
             gpio_reg.writespi(SPI_BASE_ADDR, '00110', column_mask_bit)   
-        gpio_reg.writespi(SPI_BASE_ADDR, '10111', '01000100') 
+        gpio_reg.writespi(SPI_BASE_ADDR, '10111', '01000100')    #SN DAC_REG114 0 DAC_REG113 1(d) DAC_REG112 0 LDO_REG1 0 LDO_REG0 0 C_MASK_EN (1) ENTP 0 EN10B 0 
                     
 
     # set_dac_board
@@ -194,8 +194,8 @@ def enter_to_register(noise_pixels_list, file_address, hit_number_threshold, ope
     #VR = 1.405V
 	
     ##### set_dac_chip
-    gpio_reg.writespi(SPI_BASE_ADDR, '01000', '01000101')
-    gpio_reg.writespi(SPI_BASE_ADDR, '01001', '01100000')
+    gpio_reg.writespi(SPI_BASE_ADDR, '01000', '01000101')   #SN DAC_REG7_0   01000101 
+    gpio_reg.writespi(SPI_BASE_ADDR, '01001', '01100000')   #SN DAC_REG15_8  01100000
     
     #计算ITHR的二进制并配置给寄存器，输入时只能给偶数
     ITHR_two = bin(ITHR)
@@ -204,25 +204,25 @@ def enter_to_register(noise_pixels_list, file_address, hit_number_threshold, ope
         ITHR_eight = '0' + ITHR_eight
     ITHR_eight = '1' + ITHR_eight
     print(ITHR_eight)
-    gpio_reg.writespi(SPI_BASE_ADDR, '01010', ITHR_eight)
+    gpio_reg.writespi(SPI_BASE_ADDR, '01010', ITHR_eight)   #SN  DAC_REG23_16 
     
     ##ITHR=100000--> REG[22:15]
     ##ITHR=11000--> REG[22:15]
-    gpio_reg.writespi(SPI_BASE_ADDR, '01011', '00001011')
-    gpio_reg.writespi(SPI_BASE_ADDR, '01100', '00000110')
-    gpio_reg.writespi(SPI_BASE_ADDR, '01101', '00000000')
-    gpio_reg.writespi(SPI_BASE_ADDR, '01110', '11011110')
-    gpio_reg.writespi(SPI_BASE_ADDR, '01111', '00000000')
+    gpio_reg.writespi(SPI_BASE_ADDR, '01011', '00001011')   #SN DAC_REG31_24   00001011 
+    gpio_reg.writespi(SPI_BASE_ADDR, '01100', '00000110')   #SN DAC_REG39_32   00000110
+    gpio_reg.writespi(SPI_BASE_ADDR, '01101', '00000000')   #SN DAC_REG47_40   00000000 
+    gpio_reg.writespi(SPI_BASE_ADDR, '01110', '11011110')   #SN DAC_REG55_48   11011110 
+    gpio_reg.writespi(SPI_BASE_ADDR, '01111', '00000000')   #SN DAC_REG63_56   00000000 
 
     #VCASP=10101011111--> REG[62:53]
-    gpio_reg.writespi(SPI_BASE_ADDR, '10000', '11111000')
-    gpio_reg.writespi(SPI_BASE_ADDR, '10001', '10010101')
-    gpio_reg.writespi(SPI_BASE_ADDR, '10010', '11100000')
-    gpio_reg.writespi(SPI_BASE_ADDR, '10011', '10001001')
-    gpio_reg.writespi(SPI_BASE_ADDR, '10100', '10000010')
-    gpio_reg.writespi(SPI_BASE_ADDR, '10101', '01010111')
-    gpio_reg.writespi(SPI_BASE_ADDR, '11100', '00010010')
-    gpio_reg.writespi(SPI_BASE_ADDR, '11101', '00000000')
+    gpio_reg.writespi(SPI_BASE_ADDR, '10000', '11111000')   #SN DAC_REG71_64   11111000 
+    gpio_reg.writespi(SPI_BASE_ADDR, '10001', '10010101')   #SN DAC_REG79_72   10010101
+    gpio_reg.writespi(SPI_BASE_ADDR, '10010', '11100000')   #SN DAC_REG87_80   11100000
+    gpio_reg.writespi(SPI_BASE_ADDR, '10011', '10001001')   #SN DAC_REG95_88   10001001
+    gpio_reg.writespi(SPI_BASE_ADDR, '10100', '10000010')   #SN DAC_REG103_96  10000010
+    gpio_reg.writespi(SPI_BASE_ADDR, '10101', '01010111')   #SN DAC_REG111_104 01010111
+    gpio_reg.writespi(SPI_BASE_ADDR, '11100', '00010010')   #SN REG_CDAC_8NA4_0 (00010)  EN_CDAC_8NA (0) REG_CDAC_8NA_BGR 1 REG_SEL_CDAC_8NA (0) 
+    gpio_reg.writespi(SPI_BASE_ADDR, '11101', '00000000')   #SN 00000 REG_CDAC_8NA_TRIM 00 REG_CDAC_8NA5 0 
 
 def welcome_interface():
     print(" ")
