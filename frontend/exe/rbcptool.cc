@@ -4,7 +4,9 @@
 
 #include <iostream>
 #include <filesystem>
-
+#include <chrono>
+#include <iostream>
+#include <thread>
 
 #include <signal.h>
 
@@ -177,12 +179,13 @@ int main(int argc, char **argv){
       std::cout<< "set board dac "<<ch_n << " " << value << " v"<<std::endl;
       fw.SetBoardDAC(ch_n, value);
       
-      //        N  N  N RW CM CM CM CM CH CH CH CH  D  D  D  D  D  D  D  D  D  D  D  D  D  D  D  D  M  M  M  M
-      // code2 [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0]
-      // ch_B  0b1010001111010110   1.6 (of 2.5)
       // 
+      //        N  N  N RW CM CM CM CM CH CH CH CH  D  D  D  D  D  D  D  D  D  D  D  D  D  D  D  D  M  M  M  M
       // code2 [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0]
       // ch_A  0b0011000000100001   0.47 (of 2.5)
+      //
+      // code2 [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0]
+      // ch_B  0b1010001111010110   1.6 (of 2.5)
       //
       // code2 [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0]
       // ch_C  0b1010100100010101   1.6512 (of 2.5)      
@@ -197,13 +200,22 @@ int main(int argc, char **argv){
       fw.SetFirmwareRegister("CHIP_RESTN_SET", 0);
 
       fw.SetSensorRegister("RCKI", 1);
-      fw.SetSensorRegisters({{"TRIGN",1}, {"CPRN",1}, {"DOFREQ", 0b01} });
-      fw.SetSensorRegister("DAC_REG113", 1);
-      fw.SetSensorRegister("PSET", 1);
+      // BSEL 0 ISEL1 0 ISEL0 0 EXCKS 0 DSEL 0 CKESEL 0 RCKI (1) RCKO 0
 
-      fw.SetFirmwareRegister("SESR_DELAY", 0x04); 
+      fw.SetSensorRegisters({{"TRIGN",1}, {"CPRN",1}, {"DOFREQ", 0b01} });
+      // TRIGN (1) CPRN (1) DOFREQ 01 SMOD 0 CTM 0 SPI_D 0 TMOD 0
+
+      fw.SetSensorRegister("REG_BGR_TC", 0b01);
+      // REG_BGR_TC 01 BPLDO 0 LDO_REG1 0 LDO_REG0 0 C_MASK_EN 0 ENTP 0 EN10B 0
+
+      fw.SetSensorRegisters({{"PSET", 1}, {"OISEL",0}, {"OPSEL", 0}});
+      // RESERVED13N7_4 0000 RESERVED13N3 0 PSET (1) OISEL 0(x) OPSEL 0(x) 
+      
+      fw.SetFirmwareRegister("SER_DELAY", 0x04); 
       fw.SetFirmwareRegister("FW_SOFT_RESET", 0xff);
-     
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      
       //TODO; load mask
       //
 
@@ -249,8 +261,11 @@ int main(int argc, char **argv){
       fw.SetSensorRegister("DAC_REG111_104", 0b11111000);
       //  REG_MUXO (11) REG_MUX (111)  EN_VDAC3 0 REG_VDAC2_T 00
       
-      fw.SetSensorRegisters({{"REG_CDAC_8NA4_0", 0b00010}, {"REG_CDAC_8NA4_0", 1}});
-      fw.SetSensorRegisters({{"REG_CDAC_8NA_TRIM", 0}, {"REG_CDAC_8NA5", 0}});      
+      fw.SetSensorRegisters({{"REG_CDAC_8NA4_0", 0b00010}, {"EN_CDAC_8NA", 0}, {"REG_CDAC_8NA_BGR", 1}, {"REG_SEL_CDAC_8NA", 0}});
+      //  REG_CDAC_8NA4_0 (00010)  EN_CDAC_8NA (0)   REG_CDAC_8NA_BGR 1   REG_SEL_CDAC_8NA (0)
+
+      fw.SetSensorRegisters({{"REG_CDAC_8NA_TRIM", 0b00}, {"REG_CDAC_8NA5", 0}});
+      //  00000 REG_CDAC_8NA_TRIM 00 REG_CDAC_8NA5 0
       
     }
     else if (!strncmp(result, "info", 5)){
