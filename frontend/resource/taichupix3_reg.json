@@ -505,7 +505,7 @@
 	    "default":"0b00000111"
 	},
 	{
-	    "name":"REG_VDAC2_T",
+	    "name":"REG_VDAC3_T",
 	    "address":"0b10101",
 	    "mask":"0b00000011",
 	    "mode":"rw",

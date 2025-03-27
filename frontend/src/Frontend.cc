@@ -150,22 +150,15 @@ void Frontend::SetSensorRegisters(const std::map<std::string, uint64_t>& mapRegV
       }
       
       if(mapRegMaskValue.find(address)==mapRegMaskValue.end()){
-	std::cout<< "not exsiting"<<std::endl;
-	std::cout<< "insert  "<< "{ " << address<< ", {" << mask<< ", "<< (value<<offset)<<" }}"<<std::endl;
-	
 	mapRegMaskValue.insert({address, {mask, value<<offset}});
       }
       else{
-	std::cout<< "exsiting"<<std::endl;	
 	auto& [mask_ori, value_ori]  = mapRegMaskValue[address];
-	std::cout<< "recent  "<< "{ " << address<< ", {" << mask_ori<< ", "<< value_ori<<" }}"<<std::endl;
 	if( (mask_ori & mask) != 0 ){
 	  FormatPrint(std::cerr, "ERROR<%s>: mask overlap\n", __func__);
 	  throw;
 	}
-	std::cout<< "add  "<< "{ " << address<< ", {" << mask << ", "<< value<<" }}"<<std::endl;
 	mapRegMaskValue[address] = {(mask | mask_ori) ,  ((value<<offset) & mask) | (value_ori & ~mask)};
-	std::cout<< "end  "<< "{ " << address<< ", {" << mapRegMaskValue[address].first << ", "<< mapRegMaskValue[address].second <<" }}"<<std::endl;
       }
       flag_found_reg = true;
       break;
@@ -176,19 +169,15 @@ void Frontend::SetSensorRegisters(const std::map<std::string, uint64_t>& mapRegV
     }    
   }
 
-
-  
   for(auto & [address, maskValue]: mapRegMaskValue){
     auto &[mask, value] = maskValue;
     
     uint64_t value_ori = 0;
     if(mapRegReadable[address]){
       value_ori = ReadByte(SensorRegAddr2GlobalRegAddr(address));
-    }
-    
+    }    
     WriteByte(SensorRegAddr2GlobalRegAddr(address), (value & mask) | (value_ori & ~mask) );
   }
-
 
 }
 
