@@ -55,9 +55,12 @@ Frontend::Frontend(const std::string& sensor_jsstr,
 void  Frontend::WriteByte(uint64_t address, uint64_t value){
 
   DebugFormatPrint(std::cout, "WriteByte( address= %#016x ,  value= %#016x )\n", address, value);
+  
+  std::cout<< address << "  " <<value<<std::endl;
   rbcp r(m_netip);
   std::string recvStr(100, 0);
   r.DispatchCommand("wrb",  address, value, NULL);
+  // r.DispatchCommand("wrb",  address, value, NULL);
 };
 
 uint64_t Frontend::ReadByte(uint64_t address){
@@ -147,15 +150,22 @@ void Frontend::SetSensorRegisters(const std::map<std::string, uint64_t>& mapRegV
       }
       
       if(mapRegMaskValue.find(address)==mapRegMaskValue.end()){
-	mapRegMaskValue.insert({address, {mask, value}});
+	std::cout<< "not exsiting"<<std::endl;
+	std::cout<< "insert  "<< "{ " << address<< ", {" << mask<< ", "<< (value<<offset)<<" }}"<<std::endl;
+	
+	mapRegMaskValue.insert({address, {mask, value<<offset}});
       }
       else{
+	std::cout<< "exsiting"<<std::endl;	
 	auto& [mask_ori, value_ori]  = mapRegMaskValue[address];
+	std::cout<< "recent  "<< "{ " << address<< ", {" << mask_ori<< ", "<< value_ori<<" }}"<<std::endl;
 	if( (mask_ori & mask) != 0 ){
 	  FormatPrint(std::cerr, "ERROR<%s>: mask overlap\n", __func__);
 	  throw;
 	}
+	std::cout<< "add  "<< "{ " << address<< ", {" << mask << ", "<< value<<" }}"<<std::endl;
 	mapRegMaskValue[address] = {(mask | mask_ori) ,  ((value<<offset) & mask) | (value_ori & ~mask)};
+	std::cout<< "end  "<< "{ " << address<< ", {" << mapRegMaskValue[address].first << ", "<< mapRegMaskValue[address].second <<" }}"<<std::endl;
       }
       flag_found_reg = true;
       break;
@@ -166,16 +176,17 @@ void Frontend::SetSensorRegisters(const std::map<std::string, uint64_t>& mapRegV
     }    
   }
 
+
+  
   for(auto & [address, maskValue]: mapRegMaskValue){
     auto &[mask, value] = maskValue;
-    uint8_t offset = LeastNoneZeroOffset(mask);
     
     uint64_t value_ori = 0;
     if(mapRegReadable[address]){
       value_ori = ReadByte(SensorRegAddr2GlobalRegAddr(address));
     }
     
-    WriteByte(SensorRegAddr2GlobalRegAddr(address), ((value<<offset) & mask) | (value_ori & ~mask) );
+    WriteByte(SensorRegAddr2GlobalRegAddr(address), (value & mask) | (value_ori & ~mask) );
   }
 
 
@@ -235,7 +246,7 @@ void Frontend::SetSensorRegister(const std::string& name, uint64_t value){
 uint64_t Frontend::SensorRegAddr2GlobalRegAddr(uint64_t addr){
 
   uint64_t addr_base = 0x00010000;
-  
+  //0001 0000 0000 10xx xxx0    
   // wrap 5bit addr into    0b10xxxxx0
   uint64_t addr_wrap =      0b10000000;  
   uint64_t addr_sensor = addr;

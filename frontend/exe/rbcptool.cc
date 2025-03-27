@@ -191,6 +191,53 @@ int main(int argc, char **argv){
       // ch_C  0b1010100100010101   1.6512 (of 2.5)      
       
     }
+    else if(std::regex_match(result, std::regex("\\s*(full)\\s*"))){
+
+      // mask_en
+      for(int colN= 0; colN<1024; colN++){
+	uint8_t pixelmaskData = 0;
+	for(int rowN  = 511; rowN>=0; rowN--){
+	  uint8_t bitPos = 7- (rowN%8);
+	  uint8_t bitMask = 1<<bitPos;
+	  uint8_t bitValue = 0; //get from config
+	  if(bitPos == 0){
+	    pixelmaskData=0;
+	  }
+	  pixelmaskData = (pixelmaskData | (~bitMask)) | (bitValue << bitPos);
+	  if(bitPos==7){
+	    fw.SetSensorRegister("PIXELMASK_DATA", pixelmaskData);
+	  }
+	}
+	fw.SetSensorRegisters({{"LOADC_E", 0},{"LOADM_E", 0}});
+      }
+      
+      fw.SetFirmwareRegister("LOAD_M", 0);
+      fw.SetFirmwareRegister("LOAD_M", 1);
+      fw.SetFirmwareRegister("LOAD_M", 0);
+
+      // pulse_en
+      for(int colN= 0; colN<1024; colN++){
+	uint8_t pixelmaskData = 0;
+	for(int rowN  = 511; rowN>=0; rowN--){
+	  uint8_t bitPos = 7- (rowN%8);
+	  uint8_t bitMask = 1<<bitPos;
+	  uint8_t bitValue = 1; //get from config
+	  if(bitPos == 0){
+	    pixelmaskData=0;
+	  }
+	  pixelmaskData = (pixelmaskData | (~bitMask)) | (bitValue << bitPos);
+	  if(bitPos==7){
+	    fw.SetSensorRegister("PIXELMASK_DATA", pixelmaskData);
+	  }
+	}
+	fw.SetSensorRegisters({{"LOADC_E", 0},{"LOADM_E", 0}});
+      }
+      fw.SetFirmwareRegister("LOAD_C", 0);
+      fw.SetFirmwareRegister("LOAD_C", 1);
+      fw.SetFirmwareRegister("LOAD_C", 0);
+      
+    }
+    
     else if(std::regex_match(result, std::regex("\\s*(start)\\s*"))){
       fw.SetFirmwareRegister("CHIP_MODE", 0);
       
@@ -204,21 +251,71 @@ int main(int argc, char **argv){
 
       fw.SetSensorRegisters({{"TRIGN",1}, {"CPRN",1}, {"DOFREQ", 0b01} });
       // TRIGN (1) CPRN (1) DOFREQ 01 SMOD 0 CTM 0 SPI_D 0 TMOD 0
+      // 11010000
 
-      fw.SetSensorRegister("REG_BGR_TC", 0b01);
+      
+      fw.SetSensorRegisters({{"REG_BGR_TC", 0b01},{"C_MASK_EN", 0}});
       // REG_BGR_TC 01 BPLDO 0 LDO_REG1 0 LDO_REG0 0 C_MASK_EN 0 ENTP 0 EN10B 0
-
+      // 01000000
+      
       fw.SetSensorRegisters({{"PSET", 1}, {"OISEL",0}, {"OPSEL", 0}});
       // RESERVED13N7_4 0000 RESERVED13N3 0 PSET (1) OISEL 0(x) OPSEL 0(x) 
       
       fw.SetFirmwareRegister("SER_DELAY", 0x04); 
       fw.SetFirmwareRegister("FW_SOFT_RESET", 0xff);
-
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
       
-      //TODO; load mask
-      //
+      // //TODO; load mask
+      // //
+      // // mask_en
+      // for(int colN= 0; colN<1024; colN++){
+      // 	uint8_t pixelmaskData = 0;
+      // 	for(int rowN  = 511; rowN>=0; rowN--){
+      // 	  uint8_t bitPos = 7- (rowN%8);
+      // 	  uint8_t bitMask = 1<<bitPos;
+      // 	  uint8_t bitValue = 0; //get from config
+      // 	  if(bitPos == 0){
+      // 	    pixelmaskData=0;
+      // 	  }
+      // 	  pixelmaskData = (pixelmaskData | (~bitMask)) | (bitValue << bitPos);
+      // 	  if(bitPos==7){
+      // 	    fw.SetSensorRegister("PIXELMASK_DATA", pixelmaskData);
+      // 	  }
+      // 	}
+      // 	fw.SetSensorRegisters({{"LOADC_E", 0},{"LOADM_E", 0}});
+      // }      
+      // fw.SetFirmwareRegister("LOAD_M", 0);
+      // fw.SetFirmwareRegister("LOAD_M", 1);
+      // fw.SetFirmwareRegister("LOAD_M", 0);
 
+      // // pulse_en
+      // for(int colN= 0; colN<1024; colN++){
+      // 	uint8_t pixelmaskData = 0xff;
+      // 	for(int rowN  = 511; rowN>=0; rowN--){
+      // 	  uint8_t bitPos = 7- (rowN%8);
+      // 	  uint8_t bitMask = 1<<bitPos;
+      // 	  uint8_t bitValue = 1; //get from config
+      // 	  if(bitPos == 0){
+      // 	    pixelmaskData=0;
+      // 	  }
+      // 	  pixelmaskData = (pixelmaskData | (~bitMask)) | (bitValue << bitPos);
+      // 	  if(bitPos==7){
+      // 	    fw.SetSensorRegister("PIXELMASK_DATA", pixelmaskData);
+      // 	  }
+      // 	}
+	
+      // 	fw.SetSensorRegisters({{"LOADC_E", 0},{"LOADM_E", 0}});
+      // }
+      // fw.SetFirmwareRegister("LOAD_C", 0);
+      // fw.SetFirmwareRegister("LOAD_C", 1);
+      // fw.SetFirmwareRegister("LOAD_C", 0);
+      // ////////////////////////////////////////////////////
+
+      // fw.SetBoardDAC(1, 1.6);
+      // fw.SetBoardDAC(0, 0.47);
+      // fw.SetBoardDAC(2, 1.6512);
+      
+      
       fw.SetSensorRegister("DAC_REG7_0", 0b01000101);
       //  REG_CDAC0_2_0 (010) ENIBG 0 REG_BRG_OFFSET (010) ENBGR (1)
 
@@ -246,20 +343,20 @@ int main(int argc, char **argv){
       fw.SetSensorRegister("DAC_REG71_64", 0b11111000);
       //  REG_VDAC2_0 (1) EN_VADC1 1  REG_VDAC1_T 11 REG_VDAC1_C4_1 1000
       
-      fw.SetSensorRegister("DAC_REG79_72", 0b11111000);
-      //  REG_VDAC2_8_1 (11111000)    
+      fw.SetSensorRegister("DAC_REG79_72", 0b10010101);
+      //  REG_VDAC2_8_1 10010101    
       
-      fw.SetSensorRegister("DAC_REG87_80", 0b11111000);
-      //  REG_VDAC2_T 11 REG_VDAC2_C (11100)  REG_VDAC2_9 0 
+      fw.SetSensorRegister("DAC_REG87_80", 0b11100000);
+      //  REG_VDAC2_T 11 REG_VDAC2_C 10000  REG_VDAC2_9 0 
       
-      fw.SetSensorRegister("DAC_REG95_88", 0b11111000);
-      //  REG_VDAC3_6_0 (1111100)  EN_VDAC2 (0)
+      fw.SetSensorRegister("DAC_REG95_88", 0b10001001);
+      //  REG_VDAC3_6_0 1000100  EN_VDAC2 1
       
-      fw.SetSensorRegister("DAC_REG103_96", 0b11111000);
-      //  REG_VDAC3_C (11111)  REG_VDAC3_9_7 000
+      fw.SetSensorRegister("DAC_REG103_96", 0b10000010);
+      //  REG_VDAC3_C 10000  REG_VDAC3_9_7 010
       
-      fw.SetSensorRegister("DAC_REG111_104", 0b11111000);
-      //  REG_MUXO (11) REG_MUX (111)  EN_VDAC3 0 REG_VDAC2_T 00
+      fw.SetSensorRegister("DAC_REG111_104", 0b01010111);
+      //  REG_MUXO 01 REG_MUX 010  EN_VDAC3 1 REG_VDAC2_T 11
       
       fw.SetSensorRegisters({{"REG_CDAC_8NA4_0", 0b00010}, {"EN_CDAC_8NA", 0}, {"REG_CDAC_8NA_BGR", 1}, {"REG_SEL_CDAC_8NA", 0}});
       //  REG_CDAC_8NA4_0 (00010)  EN_CDAC_8NA (0)   REG_CDAC_8NA_BGR 1   REG_SEL_CDAC_8NA (0)
