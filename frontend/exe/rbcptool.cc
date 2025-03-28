@@ -311,64 +311,49 @@ int main(int argc, char **argv){
       // fw.SetFirmwareRegister("LOAD_C", 0);
       // ////////////////////////////////////////////////////
 
-      // fw.SetBoardDAC(1, 1.6);
-      // fw.SetBoardDAC(0, 0.47);
-      // fw.SetBoardDAC(2, 1.6512);
+      fw.SetBoardDAC(1, 1.6);
+      fw.SetBoardDAC(0, 0.47);
+      fw.SetBoardDAC(2, 1.6512);      
       
-      
-      //  fw.SetSensorRegister("DAC_REG7_0", 0b01000101);
       fw.SetSensorRegisters({{"REG_CDAC0_2_0", 0b010}, {"ENIBG", 0}, {"REG_BGR_OFFSET", 0b010}, {"ENBGR", 1}});
       //  REG_CDAC0_2_0 (010) ENIBG 0 REG_BGR_OFFSET (010) ENBGR (1)
 
-      //  fw.SetSensorRegister("DAC_REG15_8", 0b01100000);
       fw.SetSensorRegisters({{"REG_CDAC1_0", 0}, {"EN_CDAC_T0", 1}, {"EN_CDAC0", 1}, {"REG_CDAC0_7_3", 0b00000}});
       //  REG_CDAC1_0 0  EN_CDAC_T0 1 EN_CDAC0 1 REG_CDAC0_7_3 00000
       
-      // fw.SetSensorRegister("DAC_REG23_16", 0b10010000);  //TODO::  ITHR  32 + prefix 1
-      fw.SetSensorRegisters({{"EN_CDAC1", 1}, {"REG_CDAC1_7_1", 0b0010000}});
+      fw.SetSensorRegisters({{"EN_CDAC1", 1}, {"REG_CDAC1_7_1", 0b0010000}}); ////TODO::  ITHR  32 + prefix 1
       //  EN_CDAC1 1 REG_CDAC1_7_1 (0010000)
       
-      // fw.SetSensorRegister("DAC_REG31_24", 0b00001011);
       fw.SetSensorRegisters({{"REG_CDAC2_6_0", 0b0000101}, {"EN_CDAC_T1", 1}});
       //  REG_CDAC2_6_0 (0000101)  EN_CDAC_T1 1
 
-      // fw.SetSensorRegister("DAC_REG39_32", 0b00000110);
       fw.SetSensorRegisters({{"REG_VDAC0_4_0", 0b00000}, {"EN_CDAC_T2", 1},  {"EN_CDAC2", 1}, {"REG_CDAC2_7", 0}});
       //  REG_VDAC0_4_0 00000  EN_CDAC_T2 1  EN_CDAC2 1 REG_CDAC2_7 0     
       
-      // fw.SetSensorRegister("DAC_REG47_40", 0b00000000);
       fw.SetSensorRegisters({{"REG_VDAC0_C2_0", 0b000}, {"REG_VDAC0_9_5", 0b00000}});
       //  REG_VDAC0_C2_0 000 REG_VDAC0_9_5 00000
 
-      // fw.SetSensorRegister("DAC_REG55_48", 0b11011110);
       fw.SetSensorRegisters({{"REG_VDAC1_2_0", 0b110}, {"EN_VDAC0", 1}, {"REG_VDAC0_T", 0b11}, {"REG_VDAC0_C4_3", 0b10}});
       //  REG_VDAC1_2_0 (110) EN_VDAC0 1 REG_VDAC0_T 11 REG_VDAC0_C4_3 10
 
-      // fw.SetSensorRegister("DAC_REG63_56", 0b00000000);
       fw.SetSensorRegisters({{"REG_VDAC1_C0", 0},{"REG_VDAC1_9_3", 0b0000000}});
       //  REG_VDAC1_C0 0 REG_VDAC1_9_3 0000000
       
-      // fw.SetSensorRegister("DAC_REG71_64", 0b11111000);
-      fw.SetSensorRegisters({{"REG_VDAC2_0",1},{"EN_VADC1", 1},{"REG_VDAC1_T",0b11},{"REG_VDAC1_C4_1",0b1000}});
-      //  REG_VDAC2_0 (1) EN_VADC1 1  REG_VDAC1_T 11 REG_VDAC1_C4_1 1000
+      fw.SetSensorRegisters({{"REG_VDAC2_0",1},{"EN_VDAC1", 1},{"REG_VDAC1_T",0b11},{"REG_VDAC1_C4_1",0b1000}});
+      //  REG_VDAC2_0 (1) EN_VDAC1 1  REG_VDAC1_T 11 REG_VDAC1_C4_1 1000
       
-      // fw.SetSensorRegister("DAC_REG79_72", 0b10010101);
       fw.SetSensorRegisters({{"REG_VDAC2_8_1", 0b10010101}});
       //  REG_VDAC2_8_1 10010101    
       
-      // fw.SetSensorRegister("DAC_REG87_80", 0b11100000);
       fw.SetSensorRegisters({{"REG_VDAC2_T", 0b11}, {"REG_VDAC2_C", 0b10000}, {"REG_VDAC2_9", 0}});
       //  REG_VDAC2_T 11 REG_VDAC2_C 10000  REG_VDAC2_9 0 
       
-      // fw.SetSensorRegister("DAC_REG95_88", 0b10001001);
       fw.SetSensorRegisters({{"REG_VDAC3_6_0", 0b1000100}, {"EN_VDAC2", 1}});
       //  REG_VDAC3_6_0 1000100  EN_VDAC2 1
       
-      // fw.SetSensorRegister("DAC_REG103_96", 0b10000010);
       fw.SetSensorRegisters({{"REG_VDAC3_C", 0b10000},  {"REG_VDAC3_9_7", 0b010}});
       //  REG_VDAC3_C 10000  REG_VDAC3_9_7 010
       
-      // fw.SetSensorRegister("DAC_REG111_104", 0b01010111);
       fw.SetSensorRegisters({{"REG_MUXO", 0b01}, {"REG_MUX", 0b010}, {"EN_VDAC3", 1}, {"REG_VDAC3_T", 0b11}});
       //  REG_MUXO 01 REG_MUX 010  EN_VDAC3 1 REG_VDAC2_T 11
       

@@ -193,7 +193,8 @@
 	    "address":"0b01001",
 	    "mask":"0b00100000",
 	    "mode":"rw",
-	    "default":"0b1"
+	    "default":"0b1",
+	    "comment":"IBIAS"
 	},
 	{
 	    "name":"EN_CDAC_T0",
@@ -221,7 +222,8 @@
 	    "address":"0b01010",
 	    "mask":"0b10000000",
 	    "mode":"rw",
-	    "default":"0b1"
+	    "default":"0b1",
+	    "comment":"ITHR"
 	},
 	{
 	    "name":"EN_CDAC_T1",
@@ -249,7 +251,8 @@
 	    "address":"0b01100",
 	    "mask":"0b00000010",
 	    "mode":"rw",
-	    "default":"0b1"
+	    "default":"0b1",
+	    "comment":"IDB"
 	},
 	{
 	    "name":"EN_CDAC_T2",
@@ -299,7 +302,8 @@
 	    "address":"0b01110",
 	    "mask":"0b00010000",
 	    "mode":"rw",
-	    "default":"0b1"
+	    "default":"0b1",
+	    "comment":"VCLIP"
 	},
 	{
 	    "name":"REG_VDAC1_2_0",
@@ -337,11 +341,12 @@
 	    "default":"0b11"
 	},
 	{
-	    "name":"EN_VADC1",
+	    "name":"EN_VDAC1",
 	    "address":"0b10000",
 	    "mask":"0b01000000",
 	    "mode":"rw",
-	    "default":"0b1"
+	    "default":"0b1",
+	    "comment":"VCASP"
 	},
 	{
 	    "name":"REG_VDAC2_0",
@@ -383,7 +388,8 @@
 	    "address":"0b10011",
 	    "mask":"0b00000001",
 	    "mode":"rw",
-	    "default":"0b1"
+	    "default":"0b1",
+	    "comment":"VCASN"
 	},
 	{
 	    "name":"REG_VDAC3_6_0",
@@ -418,7 +424,8 @@
 	    "address":"0b10101",
 	    "mask":"0b00000100",
 	    "mode":"rw",
-	    "default":"0b1"
+	    "default":"0b1",
+	    "comment":"VCASN2"
 	},
 	{
 	    "name":"REG_MUX",
@@ -581,7 +588,6 @@
 	    "mask":"0b00000100",
 	    "mode":"rw",
 	    "default":"0b1"
-
 	},
 	{
 	    "name":"REG_CDAC_8NA_BGR",
