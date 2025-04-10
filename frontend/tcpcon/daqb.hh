@@ -25,13 +25,25 @@ struct DataPack{
   uint64_t raw;
   
   static int MakeDataPack(const std::string& str, DataPack& pack){
+    static size_t n = 0;
+    if(n<100){
+      n++;
+      std::cout<< "==============="<<std::endl;
+      std::cout<< "0------0 1------1 2------2 3------3 4------4 5------5 6------6 7------7 "<<std::endl;
+      for(auto e: str){
+	std::bitset<8> rawbit(e);
+	std::cout<< rawbit<<" ";
+      }
+      std::cout<<std::endl<<"==============="<<std::endl;
+    }
+
     if(str.size()!=8){
+      throw;
       return -1;
     }
 
     pack.raw = *reinterpret_cast<const uint64_t*>(str.data());
     uint64_t v  = BE64TOH(*reinterpret_cast<const uint64_t*>(str.data()));
-    
     
     pack.pattern =  v & 0xf;
     pack.yrow    = (v>> 4) & 0x3ff;
@@ -40,6 +52,10 @@ struct DataPack{
     pack.tsfpga  = (v>> (4+10+9+8)) & 0xfffffff;
     pack.isvalid = (v>> (4+10+9+8+28)) & 0x1;
     pack.idchip  = (v>> (4+10+9+8+28+1)) & 0xf;
+
+    if(n<100){
+      pack.testData();
+    }
     return 4;
   }
   
@@ -54,6 +70,10 @@ struct DataPack{
     std::bitset<64> Bvbit(Bv);
     std::cout<< "BE " << "iiiivffffffffffffffffffffffffffffsssssssscccccccccrrrrrrrrrrpppp"<<std::endl;
     std::cout<< "BE " << Bvbit <<std::endl;
+
+    // std::bitset<64> Lvbit(Lv);
+    // std::cout<< "LE " << "iiiivffffffffffffffffffffffffffffsssssssscccccccccrrrrrrrrrrpppp"<<std::endl;
+    // std::cout<< "LE " << Lvbit <<std::endl;
   
     return 0;
   }

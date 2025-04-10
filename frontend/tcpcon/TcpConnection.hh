@@ -22,7 +22,7 @@ public:
   };
   std::string getpacket(){
     if (!havepacket()){
-      std::cerr<<"havepacket return  false\n";
+      std::cerr<<"havepacket return false\n";
       throw;
     }
     std::string packet(m_buf, 0, m_len);

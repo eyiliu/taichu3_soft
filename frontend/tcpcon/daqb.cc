@@ -96,12 +96,12 @@ int daqb::perConnProcessRecvMesg(void* pconn, const std::string& str){
   s_n ++;
 
   
-  if(s_n%1000000 <5 ){
-    if(s_n%1000000==0){
-      std::cout<<"======="<<std::endl;
-    }
-    df->testData();
-  }
+  // if(s_n%1000000 <5 ){
+  //   if(s_n%1000000==0){
+  //     std::cout<<"======="<<std::endl;
+  //   }
+  //   df->testData();
+  // }
   
   
   m_st_n_ev_input_now ++;

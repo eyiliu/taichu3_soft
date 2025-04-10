@@ -18,11 +18,16 @@
 static  const std::string help_usage
 (R"(
 Usage:
--s json_file: json filepath of sensor registers 
--f json_file: json filepath of firmware registers
+-s json_file: sensor registers [path of  taichupix3_reg.json]  
+-f json_file: firmware registers [path of firmware_reg.json]
 -i ip_address: eg. 192.168.10.16 \n\
 -h : print usage information, and then quit
+
+
+reg.json files are located in folder frontend/resource
+
 )"
+
  );
 
 
@@ -58,7 +63,7 @@ int main(int argc, char **argv){
   
   std::string f_opt;
   std::string s_opt;
-  std::string i_opt;
+  std::string i_opt="192.168.10.16";
   int c;
   while ( (c = getopt(argc, argv, "f:s:i:h")) != -1) {
     switch (c) {
@@ -111,7 +116,7 @@ int main(int argc, char **argv){
   linenoiseSetCompletionCallback([](const char* prefix, linenoiseCompletions* lc)
                                  {
                                    static const char* examples[] =
-                                     {"help", "info", "start", "dac",
+                                     {"help", "info", "start", "dac", "stop", "reset",
                                       "quit", "exit", "sensor", "firmware", "set", "get",
                                       NULL};
                                    size_t i;
@@ -138,6 +143,17 @@ int main(int argc, char **argv){
     else if ( std::regex_match(result, std::regex("\\s*(help)\\s*")) ){
       fprintf(stdout, "%s", help_usage_linenoise.c_str());
     }
+
+    else if ( std::regex_match(result, std::regex("\\s*(stop)|(reset)\\s*")) ){
+      std::cout<< "reset chip and fw"<<std::endl;
+      fw.SetFirmwareRegister("CHIP_RESTN_CLEAR", 1);
+      fw.SetFirmwareRegister("CHIP_RESTN_SET", 1);
+      fw.SetFirmwareRegister("CHIP_RESTN_CLEAR", 0);
+      fw.SetFirmwareRegister("CHIP_RESTN_SET", 0);
+
+      fw.SetFirmwareRegister("FW_SOFT_RESET", 0xff);
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000)); 
+    }
     // else if ( std::regex_match(result, std::regex("\\s*(sensor)\\s+(set)\\s+(\\w+)\\s+(?:(0[Xx])?([0-9]+))\\s*")) ){
     else if ( std::regex_match(result, std::regex("\\s*(sensor)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*")) ){
       std::cmatch mt;
@@ -156,11 +172,12 @@ int main(int argc, char **argv){
       fprintf(stderr, "%s = %u, %#x\n", name.c_str(), value, value);
     }
     
-    else if ( std::regex_match(result, std::regex("\\s*(firmware)\\s+(set)\\s+(\\w+)\\s+(?:(0[Xx])?([0-9]+))\\s*")) ){
+    else if ( std::regex_match(result, std::regex("\\s*(firmware)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*")) ){
       std::cmatch mt;
-      std::regex_match(result, mt, std::regex("\\s*(firmware)\\s+(set)\\s+(\\w+)\\s+(?:(0[Xx])?([0-9]+))\\s*"));
-      std::string name = mt[3].str();
-      uint64_t value = std::stoull(mt[5].str(), 0, mt[4].str().empty()?10:16);
+      std::regex_match(result, mt, std::regex("\\s*(firmware)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*"));
+      std::string  name  = mt[3].str();
+      uint64_t value = Frontend::String2Uint64(mt[4].str());
+      fprintf(stderr, "%s = %u, %#x\n", name.c_str(), value, value);
       fw.SetFirmwareRegister(name, value);
     }
     else if (std::regex_match(result, std::regex("\\s*(firmware)\\s+(get)\\s+(\\w+)\\s*")) ){
@@ -264,6 +281,7 @@ int main(int argc, char **argv){
       fw.SetFirmwareRegister("SER_DELAY", 0x04); 
       fw.SetFirmwareRegister("FW_SOFT_RESET", 0xff);
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      fw.SetFirmwareRegister("SER_DELAY", 0x04); 
       
       // //TODO; load mask
       // //
@@ -311,6 +329,32 @@ int main(int argc, char **argv){
       // fw.SetFirmwareRegister("LOAD_C", 0);
       // ////////////////////////////////////////////////////
 
+
+      // disable all mask_en
+      for(size_t n = 0; n< 64; n++){
+	fw.SetSensorRegister("PIXELMASK_DATA", 0b00000000);
+      }
+      for(size_t n = 0; n< 1024; n++){
+	fw.SetSensorRegisters({{"LOADC_E", 0},{"LOADM_E", 0}});
+      }
+      fw.SetFirmwareRegister("LOAD_M", 0);
+      fw.SetFirmwareRegister("LOAD_M", 1);
+      fw.SetFirmwareRegister("LOAD_M", 0);
+      //
+
+      // enable all cal_en
+      for(size_t n = 0; n< 64; n++){
+	fw.SetSensorRegister("PIXELMASK_DATA", 0b11111111);
+      }
+      for(size_t n = 0; n< 1024; n++){
+	fw.SetSensorRegisters({{"LOADC_E", 0},{"LOADM_E", 0}});
+      }
+      fw.SetFirmwareRegister("LOAD_C", 0);
+      fw.SetFirmwareRegister("LOAD_C", 1);
+      fw.SetFirmwareRegister("LOAD_C", 0);
+      
+      
+      // voltage
       fw.SetBoardDAC(1, 1.6);
       fw.SetBoardDAC(0, 0.47);
       fw.SetBoardDAC(2, 1.6512);      
