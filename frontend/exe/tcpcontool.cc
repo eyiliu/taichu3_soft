@@ -294,6 +294,7 @@ int main(int argc, char **argv){
         fut_async_data.get();	
       }
 
+      g_watch_done = 1;
       if(fut_async_watch.valid()){
         fut_async_data.get();
       }
@@ -407,7 +408,7 @@ uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, daqb *p_daqb){
     p_ttree->Branch("tsc", &tsc);
   }
 
-  while(!g_watch_done){
+  while(!g_data_done){
     auto pack = p_daqb->Front();
     if(!pack){
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -428,9 +429,15 @@ uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, daqb *p_daqb){
       if(p_ttree){p_ttree->Fill();}
     }
   }
+
   
   if(p_fd){std::fclose(p_fd); p_fd = 0;}
-  if(p_rootfd){p_rootfd->Close(); p_rootfd = 0; p_ttree=0;}
+  if(p_rootfd){
+    p_ttree->Write();
+    p_rootfd->Close();
+    p_rootfd = 0;
+    p_ttree=0;
+  }
 
   return 0;
 }
