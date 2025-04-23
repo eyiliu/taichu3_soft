@@ -3,6 +3,7 @@
 #include <regex>
 #include <filesystem>
 
+
 #include "rbcp.hh"
 
 uint8_t LeastNoneZeroOffset(const uint64_t& value){
@@ -373,4 +374,64 @@ std::string Frontend::LoadFileToString(const std::string& p){
   str.assign((std::istreambuf_iterator<char>(ifs) ),
              (std::istreambuf_iterator<char>()));
   return str;
+}
+
+
+
+void Frontend::FlushPixelMask(const std::set<std::pair<uint16_t, uint16_t>> &colMaskXY, MaskType maskType){
+  std::array<std::array<bool, 512>, 1024> maskMat;
+  for(auto &maskXCol : maskMat){
+    for(auto &mask : maskXCol){
+      mask = false;
+    }
+  }
+  for(const auto& [xCol, yRow] : colMaskXY){
+    maskMat[xCol][yRow] = true;
+  }
+  
+  // mask_en
+  // std::cout<< "56    63 48    55 40    47 32    39 24    31 16    23 8     15 0      7"<<std::endl;
+  // std::cout<< "0------- 1------- 2------- 3------- 4------- 5------- 6------- 7-------"<<std::endl;
+  std::vector<uint8_t> vecXColMaskByte_latest;
+  for(int xCol= 1023; xCol>=0; xCol--){
+    std::vector<uint8_t> vecXColMaskByte;  
+    uint8_t  maskByte = 0;
+    for(int yRow  = 511; yRow>=0; yRow--){
+      uint8_t bitPos = 7- (yRow%8);
+      uint8_t bitMask = 1<<bitPos;
+      uint8_t bitValue = maskMat[xCol][yRow]; //get from config
+
+      //revert
+      if(maskType == MaskType::UNMASK || maskType == MaskType::UNCAL){
+	bitValue = ~(bool(bitValue));
+      }
+      
+      maskByte = (maskByte & (~bitMask)) | (bitValue << bitPos);
+      if(bitPos==7){
+	vecXColMaskByte.push_back(maskByte);
+	maskByte=0;
+      }      
+    }
+
+    if(vecXColMaskByte != vecXColMaskByte_latest){
+      for(const auto & maskByte:  vecXColMaskByte){
+	// std::bitset<8> rawbit(maskByte);
+	// std::cout<< rawbit<<" ";
+	SetSensorRegister("PIXELMASK_DATA", maskByte);
+      }
+      vecXColMaskByte_latest = vecXColMaskByte;
+    }
+    SetSensorRegisters({{"LOADC_E", 0},{"LOADM_E", 0}});
+    // std::cout<<"  col #"<<xCol<<std::endl;
+  }
+  if(maskType == MaskType::CAL || maskType == MaskType::UNCAL ){
+    SetFirmwareRegister("LOAD_C", 0);
+    SetFirmwareRegister("LOAD_C", 1);
+    SetFirmwareRegister("LOAD_C", 0);
+  }
+  else{
+    SetFirmwareRegister("LOAD_M", 0);
+    SetFirmwareRegister("LOAD_M", 1);
+    SetFirmwareRegister("LOAD_M", 0);
+  }
 }

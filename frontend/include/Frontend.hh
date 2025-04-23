@@ -10,6 +10,7 @@
 #include <ctime>
 #include <regex>
 #include <map>
+#include <set>
 #include <vector>
 #include <utility>
 #include <algorithm>
@@ -19,6 +20,8 @@
 
 class Frontend{
 public:
+  enum MaskType {MASK, CAL, UNMASK, UNCAL};
+  
   Frontend(const std::string& sensor_jsstr,
 	   const std::string& firmware_jsstr,
 	   const std::string& netip);
@@ -31,13 +34,16 @@ public:
   uint64_t GetFirmwareRegister(const std::string& name);
 
   void SetSensorRegister(const std::string& name, uint64_t value);
-  uint64_t GetSensorRegister(const std::string& name);  
+  uint64_t GetSensorRegister(const std::string& name);
 
   void SetSensorRegisters(const std::map<std::string, uint64_t>& mapRegValue );
 
   void SetBoardDAC(uint32_t ch, double voltage);
   uint64_t SensorRegAddr2GlobalRegAddr(uint64_t addr);
 
+  void FlushPixelMask(const std::set<std::pair<uint16_t, uint16_t>> &colMaskXY,
+		      const MaskType maskType);
+  
 private:
   void  WriteByte(uint64_t address, uint64_t value);
   uint64_t ReadByte(uint64_t address);
