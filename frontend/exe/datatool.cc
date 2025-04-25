@@ -12,6 +12,9 @@
 #include <thread>
 #include <regex>
 #include <atomic>
+#include <iostream>
+#include <fstream>
+
 
 #include <fcntl.h>
 #include <stdlib.h>
@@ -24,8 +27,9 @@
 
 #include "linenoise.h"
 #include "getopt.h"
+#include "mysystem.hh"
 
-#include "daqb.hh"
+//#include "daqb.hh"
 
 
 #include "TFile.h"
@@ -99,9 +103,6 @@ TFile* create_and_open_rootfile(const std::filesystem::path& filepath){
 
 
 
-
-
-
 static  const std::string help_usage
 (R"(
 Usage:
@@ -112,6 +113,139 @@ Usage:
 'help' command in interactive mode provides detail usage information
 )"
  );
+
+
+
+
+//HEAD       DAQ_ID   TS_TID_H  TS_TID_L  LEN_H      LEN_L      TaichuRAW_32bit * N            ENDH       ENDL
+//10101010  xxxxxxxx  xxxxxxxx  xxxxxxxx  xxxxxxxx   xxxxxxxx  {bit_last ---- bit_first} * N   11001100   11001100
+class DataInBuffer{
+public:
+  int64_t readsome(std::istream &is, size_t length){
+    if(m_temp_buf.length() < length){
+      m_temp_buf.resize(length);
+    }
+    int64_t len_actual = is.readsome(m_temp_buf.data(), length);
+    if(len_actual>0){
+      append(len_actual, m_temp_buf.data());
+    }
+    return len_actual;
+  }
+
+  void append(size_t length, const char *data){
+    m_buf += std::string(data, length);
+    updatelength(false);
+  };
+
+  bool havepacket() const{
+    return m_buf.length() >= m_len  && m_len!=0;
+  };
+  std::string getpacket(){
+    if (!havepacket()){
+      std::cerr<<"havepacket return false\n";
+      throw;
+    }
+    std::string packet(m_buf, 0, m_len);
+    m_buf.erase(0, m_len);
+    updatelength(true);
+    return packet;
+  };
+
+private:
+  void updatelength(bool force){
+    if (force || m_len == 0) {
+      if (m_buf.length() >= 6) {
+        m_len = size_t(m_buf[4])<<8 + size_t(m_buf[5]);
+      }
+    }
+  };
+  //check 1st pack format in updatelength
+  size_t m_len{0};
+  std::string m_buf{""};
+  std::string m_temp_buf{""};
+};
+
+
+struct PixelWord{
+  PixelWord(const uint32_t v){ //BE32TOH
+    // valid(1) tschip(8) xcol[9]  yrow[10] pattern[4]
+    pattern =  v & 0xf;
+    yrow    = (v>> 4) & 0x3ff;
+    xcol    = (v>> (4+10)) & 0x1ff;
+    tschip  = (v>> (4+10+9)) & 0xff;
+    isvalid = (v>> (4+10+9+8)) & 0x1;
+  }
+
+  uint16_t xcol;
+  uint16_t yrow;
+  uint8_t  tschip;
+  uint8_t  pattern;
+  uint8_t  isvalid;
+  uint32_t raw;
+};
+
+struct DataPack{
+  DataPack(const std::string&  packstr){
+    packraw = packstr;
+    const uint8_t *p = reinterpret_cast<const uint8_t*>(packraw.data());
+    packhead = *p;
+    p++;
+    daqid = *p;
+    p++;
+    tid = *p;
+    p++;
+    tid = tid<<8;
+    tid += *p;
+    p++;
+    len = *p;
+    p++;
+    len = len<<8;
+    len += *p;
+
+    uint16_t pixelwordN = (len - 8)/ 4;
+    for(size_t n = 0; n< pixelwordN; n++){
+      p += 4;
+      uint32_t v  = BE32TOH(*reinterpret_cast<const uint32_t*>(p));
+      PixelWord pw(v);
+    }
+    p++;
+    packend = *p;
+    p++;
+    packend = packend<<8;
+    packend += *p;
+  };
+
+  std::vector<PixelWord> vecpixel;
+  uint8_t packhead;
+  uint8_t daqid;
+  uint16_t tid;
+  uint16_t len;
+  uint16_t packend;
+  std::string packraw;
+};
+
+
+  // bool testData(){
+  //   uint64_t Bv  = BE64TOH(raw);;
+  //   uint64_t Lv  = LE64TOH(raw);;
+
+  //   std::bitset<64> Bvbit(Bv);
+  //   std::cout<< "BE " << "iiiivffffffffffffffffffffffffffffsssssssscccccccccrrrrrrrrrrpppp"<<std::endl;
+  //   std::cout<< "BE " << Bvbit <<std::endl;
+
+  //   std::bitset<64> Lvbit(Lv);
+  //   std::cout<< "LE " << "iiiivffffffffffffffffffffffffffffsssssssscccccccccrrrrrrrrrrpppp"<<std::endl;
+  //   std::cout<< "LE " << Lvbit <<std::endl;
+  // };
+
+
+
+
+
+
+
+///////////////////////////////////////////////////////////////////////////////////
+
 
 
 
@@ -214,7 +348,7 @@ int main(int argc, char **argv){
 
   DataInBuffer inbuf;
   while( !ifs.eof() && !ifs.fail() && ifs.good() ){
-    inbuf.getsome(ifs, 10000);
+    inbuf.readsome(ifs, 10000);
     if(inbuf.havepacket()){
       std::string packstr = inbuf.getpacket();
       DataPack dp(packstr);
@@ -223,124 +357,3 @@ int main(int argc, char **argv){
   }
 }
 
-
-//HEAD       DAQ_ID   TS_TID_H  TS_TID_L  LEN_H      LEN_L      TaichuRAW_32bit * N            ENDH       ENDL
-//10101010  xxxxxxxx  xxxxxxxx  xxxxxxxx  xxxxxxxx   xxxxxxxx  {bit_last ---- bit_first} * N   11001100   11001100
-class DataInBuffer{
-public:
-  int64_t readsome(istream &is, size_t length){
-    if(m_temp_buf.length() < length){
-      m_temp_buf.resize(length);
-    }
-    int64_t len_actual = m_is.readsome(m_temp_buf.data(), length);
-    if(len_actual>0){
-      append(len_actual, m_temp_buf.data());
-    }
-    return len_actual;
-  }
-
-  void append(size_t length, const char *data){
-    m_buf += std::string(data, length);
-    updatelength(false);
-  };
-
-  bool havepacket() const{
-    return m_buf.length() >= m_len  && m_len!=0;
-  };
-  std::string getpacket(){
-    if (!havepacket()){
-      std::cerr<<"havepacket return false\n";
-      throw;
-    }
-    std::string packet(m_buf, 0, m_len);
-    m_buf.erase(0, m_len);
-    updatelength(true);
-    return packet;
-  };
-
-private:
-  void updatelength(bool force){
-    if (force || m_len == 0) {
-      if (m_buf.length() >= 6) {
-        m_len = size_t(m_buf[4])<<8 + size_t(m_buf[5]);
-      }
-    }
-  };
-  //check 1st pack format in updatelength
-  size_t m_len{0};
-  std::string m_buf{""};
-  std::string m_temp_buf{""};
-};
-
-
-struct PixelWord{
-  PixelWord(const uint32_t v){ //BE32TOH
-    // valid(1) tschip(8) xcol[9]  yrow[10] pattern[4]
-    pattern =  v & 0xf;
-    yrow    = (v>> 4) & 0x3ff;
-    xcol    = (v>> (4+10)) & 0x1ff;
-    tschip  = (v>> (4+10+9)) & 0xff;
-    isvalid = (v>> (4+10+9+8)) & 0x1;
-  }
-
-  uint16_t xcol;
-  uint16_t yrow;
-  uint8_t  tschip;
-  uint8_t  pattern;
-  uint8_t  isvalid;
-  uint32_t raw;
-};
-
-struct DataPack{
-  DataPack(const std::string&  packstr){
-    packraw = packstr;
-    uint8_t *p = packraw.data();
-    packhead = *p;
-    p++;
-    daqid = *p;
-    p++;
-    tid = *p;
-    p++;
-    tid = itd<<8;
-    tid += *p;
-    p++;
-    len = *p;
-    p++;
-    len = len<<8;
-    len += *p;
-
-    uint16_t pixelwordN = (len - 8)/ 4;
-    for(size_t n = 0; n< datawordN; n++){
-      p += 4;
-      uint32_t v  = BE32TOH(*reinterpret_cast<const uint32_t*>(p));
-      PixelWord pw(v);
-    }
-    p++;
-    packend = *p;
-    p++;
-    packend = packend<<8;
-    packend += *p;
-  };
-
-  std::vector<PixelWord> vecpixel;
-  uint8_t packhead;
-  uint8_t daqid;
-  uint16_t tid;
-  uint16_t len;
-  uint16_t packend;
-  std::string packraw;
-};
-
-
-  // bool testData(){
-  //   uint64_t Bv  = BE64TOH(raw);;
-  //   uint64_t Lv  = LE64TOH(raw);;
-
-  //   std::bitset<64> Bvbit(Bv);
-  //   std::cout<< "BE " << "iiiivffffffffffffffffffffffffffffsssssssscccccccccrrrrrrrrrrpppp"<<std::endl;
-  //   std::cout<< "BE " << Bvbit <<std::endl;
-
-  //   std::bitset<64> Lvbit(Lv);
-  //   std::cout<< "LE " << "iiiivffffffffffffffffffffffffffffsssssssscccccccccrrrrrrrrrrpppp"<<std::endl;
-  //   std::cout<< "LE " << Lvbit <<std::endl;
-  // };

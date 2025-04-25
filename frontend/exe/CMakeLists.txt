@@ -10,7 +10,11 @@ target_link_libraries(rbcptool PRIVATE mycommon frontend stdc++fs)
 add_executable(tcpcontool tcpcontool.cc)
 target_link_libraries(tcpcontool PRIVATE mycommon frontend tcpcon stdc++fs ROOT::RIO ROOT::Tree)
 
-install(TARGETS rbcptool tcpcontool
+add_executable(datatool datatool.cc)
+target_link_libraries(datatool PRIVATE mycommon frontend tcpcon stdc++fs ROOT::RIO ROOT::Tree)
+
+
+install(TARGETS rbcptool tcpcontool datatool
   EXPORT ${PROJECT_NAME}Targets
   RUNTIME       DESTINATION bin      COMPONENT runtime
   LIBRARY       DESTINATION lib      COMPONENT runtime

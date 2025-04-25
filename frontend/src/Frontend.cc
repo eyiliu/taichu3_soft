@@ -2,6 +2,7 @@
 
 #include <regex>
 #include <filesystem>
+#include <array>
 
 
 #include "rbcp.hh"
