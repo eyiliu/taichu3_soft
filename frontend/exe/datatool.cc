@@ -25,6 +25,15 @@
 #include <signal.h>
 #include <arpa/inet.h>
 
+
+#include <unistd.h>
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+
+
 #include "linenoise.h"
 #include "getopt.h"
 #include "mysystem.hh"
@@ -40,7 +49,91 @@
 
 
 
+
+
+
+int connectToServer(const std::string& host,  short int port){
+  auto now = std::chrono::system_clock::now();
+  auto now_c = std::chrono::system_clock::to_time_t(now);
+  printf("AsyncTcpClientConn is running...\n");
+
+  int sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (sockfd < 0)
+    fprintf(stderr, "ERROR opening socket");
+
+  sockaddr_in serv_addr;
+  bzero((char *) &serv_addr, sizeof(serv_addr));
+  serv_addr.sin_family = AF_INET;
+  serv_addr.sin_port = htons(port);
+  serv_addr.sin_addr.s_addr = inet_addr(host.c_str());
+  if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0){
+    if(errno != EINPROGRESS){
+      std::fprintf(stderr, "ERROR<%s>: unable to start TCP connection, error code %i \n", __func__, errno);
+    }
+    if(errno == 29){
+      std::fprintf(stderr, "ERROR<%s>: TCP open timeout \n", __func__);
+    }
+    printf("\nConnection Failed \n");
+    close(sockfd);
+    sockfd = -1;
+    return sockfd;
+  }
+
+  int iof = fcntl(sockfd, F_GETFL, 0);
+  if (iof != -1)
+    fcntl(sockfd, F_SETFL, iof | O_NONBLOCK);
+
+  /// Allow the socket to rebind to an address that is still shutting down
+  /// Useful if the server is quickly shut down then restarted
+  int one = 1;
+  setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);
+
+  /// Periodically send packets to keep the connection open
+  setsockopt(sockfd, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof one);
+
+  /// Try to send any remaining data when a socket is closed
+  linger ling;
+  ling.l_onoff = 1; ///< Enable linger mode
+  ling.l_linger = 1; ///< Linger timeout in seconds
+  setsockopt(sockfd, SOL_SOCKET, SO_LINGER, &ling, sizeof ling);
+
+  return sockfd;
+}
+
+size_t socketread( void* buffer, size_t bsize, size_t bcount,  int sockfd){
+  timeval tv_timeout;
+  tv_timeout.tv_sec = 0;
+  tv_timeout.tv_usec = 10;
+  fd_set fds;
+
+  FD_ZERO(&fds);
+  FD_SET(sockfd, &fds);
+  FD_SET(0, &fds);
+
+  int i = 0;
+  while(!select(sockfd+1, &fds, NULL, NULL, &tv_timeout) || !FD_ISSET(sockfd, &fds) ){
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    i++;
+    if(i>3){
+      return 0;
+    }
+  }
+
+  int length_actual = recv(sockfd, buffer, (unsigned int)bsize*bcount,0);
+  if(length_actual == 0 && errno != EWOULDBLOCK && errno != EAGAIN){
+      std::printf("connection is closed by remote peer\n");
+  }
+  return length_actual;
+}
+
+
+
 bool gBrokenData = false;
+
+
+
+
+
 
 
 
@@ -208,12 +301,12 @@ public:
 
 private:
   void updatelength(bool force){
-    std::cout<< "m_len udpate"<<std::endl;
+    // std::cout<< "m_len udpate"<<std::endl;
     if (force || m_len == 0) {
       m_len = 0;
       if (m_buf.length() >= 6) {
         m_len = ((size_t(uint8_t(m_buf[4]))<<8) + (size_t(uint8_t(m_buf[5]))))  * 4  + 8;
-        std::cout<< "len update "<< m_len<< std::hex<<" " << size_t(uint8_t(m_buf[4])) << "  "<< size_t(uint8_t(m_buf[5]))<<std::dec<<std::endl;
+        // std::cout<< "len update "<< m_len<< std::hex<<" " << size_t(uint8_t(m_buf[4])) << "  "<< size_t(uint8_t(m_buf[5]))<<std::dec<<std::endl;
         m_len = m_len<128 ? m_len:128; //TODO, to be removed ;
       }
     }
@@ -449,7 +542,11 @@ int main(int argc, char **argv){
 
   std::vector<char> buf(128*5); // char is trivially copyable
   size_t len_actual;
-  while ( (len_actual = std::fread(&buf[0], sizeof buf[0], buf.size(), fp0)) != 0 ){
+
+  bool isNet = false;
+  int socketfd0 = connectToServer("192.168.200.16", 24);
+  
+  while ( (   len_actual = isNet? socketread(&buf[0], sizeof buf[0], buf.size(), socketfd0 ):  std::fread(&buf[0], sizeof buf[0], buf.size(), fp0 )      ) != 0 ){
     inbuf.append(len_actual, &buf[0]);
     while(inbuf.havepacket()){
       std::string packstr = inbuf.getpacket();
