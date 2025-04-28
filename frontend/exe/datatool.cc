@@ -126,17 +126,6 @@ Usage:
 //10101010  xxxxxxxx  xxxxxxxx  xxxxxxxx  xxxxxxxx   xxxxxxxx  {bit_last ---- bit_first} * N   11001100   11001100
 class DataInBuffer{
 public:
-  int64_t readsome(std::istream &is, size_t length){
-    if(m_temp_buf.length() < length){
-      m_temp_buf.resize(length);
-    }
-
-    int64_t len_actual = is.readsome(m_temp_buf.data(), length);
-    if(len_actual>0){
-      append(len_actual, m_temp_buf.data());
-    }
-    return len_actual;
-  }
 
   void append(size_t length, const char *data){
     m_buf += std::string(data, length);
@@ -147,13 +136,52 @@ public:
   bool havepacket() const{
     return m_buf.length() >= m_len  && m_len!=0;
   };
+
+
+  bool havepacket_possible() const{
+    bool expectedPack = false;
+    if(m_buf.length() >= m_len  && m_len!=0){
+      expectedPack = true;
+    }
+    return expectedPack;
+  };
+
+
+  void  resyncpacket(){
+    if(!havepacket_possible()){
+      return;
+    }
+
+    std::string packet(m_buf, 0, m_len);
+    while(havepacket_possible() &&
+          (m_buf[0]!=0b10101010 || (m_buf[m_len-2] != 0b11001100 || m_buf[m_len-1] != 0b11001100))){
+      if(m_buf[0]!=0b10101010){
+        std::string::size_type pos = m_buf.find(0b10101010);
+        if(pos != std::string::npos){
+          m_buf.erase(0, pos);
+          updatelength(true);
+        }else{
+          m_buf.clear();
+          updatelength(true);
+        }
+        continue;
+      }
+      if(m_buf[m_len-2] != 0b11001100 || m_buf[m_len-1] != 0b11001100) {
+        std::string::size_type pos = m_buf.find("\xcc\xcc");
+        m_buf.erase(0, pos+2);
+        updatelength(true);
+      }
+    }
+    return ;
+  }
+
   std::string getpacket(){
     if (!havepacket()){
       std::cerr<<"havepacket return false\n";
       throw;
     }
     std::string packet(m_buf, 0, m_len);
-    fprintf(stdout, "extract datapack_string:   ");
+    fprintf(stdout, "extract datapack_string [%04d]:   ", m_len);
     for(size_t n = 0; n< packet.size(); n++){
       if(n!=0 && n%16==0){ std::cout<<"                           "; }
       uint16_t num = (uint8_t)packet[n];
@@ -180,9 +208,13 @@ public:
 
 private:
   void updatelength(bool force){
+    std::cout<< "m_len udpate"<<std::endl;
     if (force || m_len == 0) {
+      m_len = 0;
       if (m_buf.length() >= 6) {
         m_len = ((size_t(uint8_t(m_buf[4]))<<8) + (size_t(uint8_t(m_buf[5]))))  * 4  + 8;
+        std::cout<< "len update "<< m_len<< std::hex<<" " << size_t(uint8_t(m_buf[4])) << "  "<< size_t(uint8_t(m_buf[5]))<<std::dec<<std::endl;
+        m_len = m_len<128 ? m_len:128; //TODO, to be removed ;
       }
     }
   };
@@ -229,14 +261,13 @@ struct DataPack{
     p++;
     len = len<<8;
     len += *p;
-
+    p++;
     uint16_t pixelwordN = len;
     for(size_t n = 0; n< pixelwordN; n++){
-      p += 4;
       uint32_t v  = BE32TOH(*reinterpret_cast<const uint32_t*>(p));
       vecpixel.emplace_back(v);
+      p += 4;
     }
-    p++;
     packend = *p;
     p++;
     packend = packend<<8;
@@ -292,7 +323,6 @@ struct DataPack{
 
 };
 
-
   // bool testData(){
   //   uint64_t Bv  = BE64TOH(raw);;
   //   uint64_t Lv  = LE64TOH(raw);;
@@ -309,15 +339,7 @@ struct DataPack{
 ///////////////////////////////////////////////////////////////////////////////////
 
 
-
-
-
-
 int main(int argc, char **argv){
-
-
-
-  
   std::string dataOutDir="data";
   std::string dataInFile;
   std::string dataInFile1;
