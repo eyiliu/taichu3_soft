@@ -31,13 +31,17 @@
 
 //#include "daqb.hh"
 
-
-#include "TFile.h"
-#include "TTree.h"
+// #include "TFile.h"
+// #include "TTree.h"
 
 #define DEBUG_PRINT 0
 #define dprintf(fmt, ...)                                           \
   do { if (DEBUG_PRINT) std::fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
+
+
+
+bool gBrokenData = false;
+
 
 
 bool check_and_create_folder(std::filesystem::path path_dir){
@@ -84,21 +88,21 @@ std::FILE * create_and_open_file(std::filesystem::path filepath){
   return fp;
 }
 
-TFile* create_and_open_rootfile(const std::filesystem::path& filepath){
+// TFile* create_and_open_rootfile(const std::filesystem::path& filepath){
 
-  std::filesystem::path filepath_abs = std::filesystem::absolute(filepath);
-  std::filesystem::file_status st_file = std::filesystem::status(filepath_abs);
-  if (std::filesystem::exists(st_file)) {
-    std::fprintf(stderr, "File < %s > exists.\n\n", filepath_abs.c_str());
-    throw;
-  }
-  TFile *tf = TFile::Open(filepath_abs.c_str(),"recreate");
-  if (!tf) {
-    std::fprintf(stderr, "ROOT TFile opening failed: %s \n\n", filepath_abs.c_str());
-    throw;
-  }
-  return tf;
-}
+//   std::filesystem::path filepath_abs = std::filesystem::absolute(filepath);
+//   std::filesystem::file_status st_file = std::filesystem::status(filepath_abs);
+//   if (std::filesystem::exists(st_file)) {
+//     std::fprintf(stderr, "File < %s > exists.\n\n", filepath_abs.c_str());
+//     throw;
+//   }
+//   TFile *tf = TFile::Open(filepath_abs.c_str(),"recreate");
+//   if (!tf) {
+//     std::fprintf(stderr, "ROOT TFile opening failed: %s \n\n", filepath_abs.c_str());
+//     throw;
+//   }
+//   return tf;
+// }
 
 
 
@@ -127,12 +131,8 @@ public:
       m_temp_buf.resize(length);
     }
 
-
-    
     int64_t len_actual = is.readsome(m_temp_buf.data(), length);
     if(len_actual>0){
-      //std::cout<<std::hex<<(short)m_temp_buf[0]<<(short)m_temp_buf[1]<<(short)m_temp_buf[2]<<(short)m_temp_buf[3]<<(short)m_temp_buf[4]<<(short)m_temp_buf[5]<<std::dec<<std::endl;
-      
       append(len_actual, m_temp_buf.data());
     }
     return len_actual;
@@ -140,18 +140,6 @@ public:
 
   void append(size_t length, const char *data){
     m_buf += std::string(data, length);
-
-    // std::cout<< "----------------------"<<std::endl;
-    // for(size_t n = 0; n< m_buf.size(); n++){
-    //   //std::cout<<std::hex;
-    //   uint16_t num = (uint8_t)m_buf[n];
-    //   //std::cout<<num;
-    //   //std::cout<<(uint16_t)n;
-    //   fprintf(stdout, "%02X - ", num);
-    //   if(n%2==1)   std::cout<<" = ";
-    //   if(n%16==15) std::cout<<std::endl;
-    //   //std::cout<<std::dec;
-    // }
 
     updatelength(false);
   };
@@ -165,23 +153,29 @@ public:
       throw;
     }
     std::string packet(m_buf, 0, m_len);
-    std::cout<< "create a pack"<<std::endl;
+    fprintf(stdout, "extract datapack_string:   ");
     for(size_t n = 0; n< packet.size(); n++){
-      //std::cout<<std::hex;
+      if(n!=0 && n%16==0){ std::cout<<"                           "; }
       uint16_t num = (uint8_t)packet[n];
-      //std::cout<<num;
-      //std::cout<<(uint16_t)n;
-      fprintf(stdout, "%02X - ", num);
-      if(n%2==1)   std::cout<<" = ";
+      fprintf(stdout, "%02X ", num);
+      if(n%2==1)   std::cout<<" - ";
       if(n%16==15) std::cout<<std::endl;
-      //std::cout<<std::dec;
     }
-    std::cout<< "end of a pack"<<std::endl;
-
 
     m_buf.erase(0, m_len);
     updatelength(true);
     return packet;
+  };
+
+
+  void dump(size_t maxN){
+    size_t dumpN = m_buf.size()<maxN ? m_buf.size(): maxN;
+    for(size_t n = 0; n< dumpN; n++){
+      uint16_t num = (uint8_t)m_buf[n];
+      fprintf(stdout, "%02X - ", num);
+      if(n%2==1)   std::cout<<" = ";
+      if(n%16==15) std::cout<<std::endl;
+    }
   };
 
 private:
@@ -189,7 +183,6 @@ private:
     if (force || m_len == 0) {
       if (m_buf.length() >= 6) {
         m_len = ((size_t(uint8_t(m_buf[4]))<<8) + (size_t(uint8_t(m_buf[5]))))  * 4  + 8;
-        std::cout<< "new packet len = "<<m_len<<std::endl;
       }
     }
   };
@@ -208,6 +201,7 @@ struct PixelWord{
     xcol    = (v>> (4+10)) & 0x1ff;
     tschip  = (v>> (4+10+9)) & 0xff;
     isvalid = (v>> (4+10+9+8)) & 0x1;
+    raw = v;
   }
 
   uint16_t xcol;
@@ -247,6 +241,10 @@ struct DataPack{
     p++;
     packend = packend<<8;
     packend += *p;
+
+    if(packhead != 0xaa  || packend!=0xcccc){
+      gBrokenData = true; // deteccted
+    }
   };
 
   std::vector<PixelWord> vecpixel;
@@ -257,15 +255,41 @@ struct DataPack{
   uint16_t packend;
   std::string packraw;
 
-
   void print(){
-    fprintf(stdout, "-> HEAD %d   DAQID %d  TID %d   LEN  %d  \n->> [xcol, yrow, tschip, pattern, isvalid]: ",
+    fprintf(stdout, "-> HEAD %d   DAQID %d  TID %d   LEN  %d \n",
             (uint32_t)packhead, (uint32_t)daqid, (uint32_t)tid, (uint32_t)len);
-    for(auto & pw:  vecpixel){
-      fprintf(stdout, "[%d, %d, %d, %d, #d] ",
-              (uint32_t)pw.xcol, (uint32_t)pw.yrow, (uint32_t)pw.tschip, (uint32_t)pw.pattern, (uint32_t)pw.isvalid);
+
+    if(!vecpixel.empty()){
+      fprintf(stdout, "[x, y, t, p, v]: ");
     }
+
+    for(auto & pw:  vecpixel){
+      fprintf(stdout, "[%d, %d, %d, %d, %d] ",
+              (uint32_t)pw.xcol, (uint32_t)pw.yrow, (uint32_t)pw.tschip, (uint32_t)pw.pattern, (uint32_t)pw.isvalid);
+
+    }
+    fprintf(stdout,"\n");
+
+    if(!vecpixel.empty()){
+      std::cout<< "vttttttttxxxxxxxxxyyyyyyyyyypppp"<<std::endl;
+    }
+    for(auto & pw:  vecpixel){
+      std::bitset<32> pwbit(pw.raw);
+      std::cout<< pwbit <<std::endl;
+    }
+
   };
+
+
+  void dump(){
+    for(size_t n = 0; n< packraw.length(); n++){
+      uint16_t num = (uint8_t)packraw[n];
+      fprintf(stdout, "%02X - ", num);
+      if(n%2==1)   std::cout<<" = ";
+      if(n%16==15) std::cout<<std::endl;
+    }
+  }
+
 };
 
 
@@ -282,14 +306,18 @@ struct DataPack{
   //   std::cout<< "LE " << Lvbit <<std::endl;
   // };
 
-
 ///////////////////////////////////////////////////////////////////////////////////
+
+
 
 
 
 
 int main(int argc, char **argv){
 
+
+
+  
   std::string dataOutDir="data";
   std::string dataInFile;
   std::string dataInFile1;
@@ -389,7 +417,6 @@ int main(int argc, char **argv){
   }
 
   // std::ifstream ifs(rawdata_path.c_str(), std::ios::binary);
-
   // if(!ifs.good()){
   //   std::fprintf(stderr, "Unable open rawdata file: %s\n\n", rawdata_path.c_str());
   //   throw;
@@ -398,36 +425,31 @@ int main(int argc, char **argv){
 
   DataInBuffer inbuf;
 
-
   std::vector<char> buf(128*5); // char is trivially copyable
   size_t len_actual;
   while ( (len_actual = std::fread(&buf[0], sizeof buf[0], buf.size(), fp0)) != 0 ){
-
-    // for(size_t n = 0; n< len_actual; n++){
-    //   //std::cout<<std::hex;
-    //   uint16_t num = (uint8_t)buf[n];
-    //   //std::cout<<num;
-    //   //std::cout<<(uint16_t)n;
-    //   fprintf(stdout, "%02X - ", num);
-    //   if(n%2==1)   std::cout<<" = ";
-    //   if(n%16==15) std::cout<<std::endl;
-    //   //std::cout<<std::dec;
-    // }
-
     inbuf.append(len_actual, &buf[0]);
     while(inbuf.havepacket()){
       std::string packstr = inbuf.getpacket();
       DataPack dp(packstr);
-      //dp.print();
+      dp.print();
+      if(gBrokenData){
+        std::cout<<"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Broken data is detected!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<std::endl;
+        std::cout<<"==============================current datapack======================================="<<std::endl;
+        dp.dump();
+        std::cout<<std::endl;
+        std::cout<<"==============================pending data==========================================="<<std::endl;
+        inbuf.dump(100);
+        break;
+      }
     }
-    //break;
   }
-  if (std::ferror(fp0)){
-    std::fprintf(stdout,"I/O error when reading");
+  if(std::ferror(fp0)){
+    std::fprintf(stdout,"\nI/O error when reading\n");
   }
   if(std::feof(fp0))
   {
-    std::fprintf(stdout,"End of file reached successfully");
+    std::fprintf(stdout,"\nEnd of File\n");
   }
   std::fclose(fp0);
   return 0;
