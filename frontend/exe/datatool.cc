@@ -38,17 +38,20 @@
 #include "getopt.h"
 #include "mysystem.hh"
 
-//#include "daqb.hh"
-
-// #include "TFile.h"
-// #include "TTree.h"
+#include "TFile.h"
+#include "TTree.h"
 
 #define DEBUG_PRINT 0
 #define dprintf(fmt, ...)                                           \
   do { if (DEBUG_PRINT) std::fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
 
 
-
+std::string getnowstring(){
+  char buffer[80];
+  std::time_t t = std::time(nullptr);
+  size_t n = std::strftime(buffer, sizeof(buffer), "%FT%H%M%S%Z", std::localtime(&t));
+  return std::string(buffer, n);
+}
 
 
 
@@ -133,10 +136,6 @@ bool gBrokenData = false;
 
 
 
-
-
-
-
 bool check_and_create_folder(std::filesystem::path path_dir){
 
   std::filesystem::path path_dir_output = std::filesystem::absolute(path_dir);
@@ -181,22 +180,21 @@ std::FILE * create_and_open_file(std::filesystem::path filepath){
   return fp;
 }
 
-// TFile* create_and_open_rootfile(const std::filesystem::path& filepath){
+TFile* create_and_open_rootfile(const std::filesystem::path& filepath){
 
-//   std::filesystem::path filepath_abs = std::filesystem::absolute(filepath);
-//   std::filesystem::file_status st_file = std::filesystem::status(filepath_abs);
-//   if (std::filesystem::exists(st_file)) {
-//     std::fprintf(stderr, "File < %s > exists.\n\n", filepath_abs.c_str());
-//     throw;
-//   }
-//   TFile *tf = TFile::Open(filepath_abs.c_str(),"recreate");
-//   if (!tf) {
-//     std::fprintf(stderr, "ROOT TFile opening failed: %s \n\n", filepath_abs.c_str());
-//     throw;
-//   }
-//   return tf;
-// }
-
+  std::filesystem::path filepath_abs = std::filesystem::absolute(filepath);
+  std::filesystem::file_status st_file = std::filesystem::status(filepath_abs);
+  if (std::filesystem::exists(st_file)) {
+    std::fprintf(stderr, "File < %s > exists.\n\n", filepath_abs.c_str());
+    throw;
+  }
+  TFile *tf = TFile::Open(filepath_abs.c_str(),"recreate");
+  if (!tf) {
+    std::fprintf(stderr, "ROOT TFile opening failed: %s \n\n", filepath_abs.c_str());
+    throw;
+  }
+  return tf;
+}
 
 
 
@@ -205,13 +203,13 @@ static  const std::string help_usage
 Usage:
 --help                         : print usage information, and then quit
 --file0       <raw_data_path>  : file path of input raw data 0
+--root        <dir_path>       : directory path where output root file will be placed. default: current path
 
 'help' command in interactive mode provides detail usage information
 )"
  );
 
 // --file1       <raw_data_path>  : file path of input raw data 1
-// --outpath     <dir_path>       : default[ data ], directory path where output data file will be placed
 
 
 
@@ -307,7 +305,6 @@ private:
       if (m_buf.length() >= 6) {
         m_len = ((size_t(uint8_t(m_buf[4]))<<8) + (size_t(uint8_t(m_buf[5]))))  * 4  + 8;
         // std::cout<< "len update "<< m_len<< std::hex<<" " << size_t(uint8_t(m_buf[4])) << "  "<< size_t(uint8_t(m_buf[5]))<<std::dec<<std::endl;
-        m_len = m_len<128 ? m_len:128; //TODO, to be removed ;
       }
     }
   };
@@ -416,35 +413,24 @@ struct DataPack{
 
 };
 
-  // bool testData(){
-  //   uint64_t Bv  = BE64TOH(raw);;
-  //   uint64_t Lv  = LE64TOH(raw);;
-
-  //   std::bitset<64> Bvbit(Bv);
-  //   std::cout<< "BE " << "iiiivffffffffffffffffffffffffffffsssssssscccccccccrrrrrrrrrrpppp"<<std::endl;
-  //   std::cout<< "BE " << Bvbit <<std::endl;
-
-  //   std::bitset<64> Lvbit(Lv);
-  //   std::cout<< "LE " << "iiiivffffffffffffffffffffffffffffsssssssscccccccccrrrrrrrrrrpppp"<<std::endl;
-  //   std::cout<< "LE " << Lvbit <<std::endl;
-  // };
 
 ///////////////////////////////////////////////////////////////////////////////////
 
 
 int main(int argc, char **argv){
-  std::string dataOutDir="data";
+  std::string rootOutDir;
   std::string dataInFile;
   std::string dataInFile1;
 
+  std::string ipAddress;
   int do_verbose = 0;
-  bool do_rootfile = false;
   {////////////getopt begin//////////////////
     struct option longopts[] = {{"help",      no_argument, NULL, 'h'},//option -W is reserved by getopt
                                 {"verbose",   no_argument, NULL, 'v'},//val
+                                {"ip0",   required_argument, NULL, 'p'},
                                 {"file0",   required_argument, NULL, 'i'},
                                 // {"file1",   required_argument, NULL, 'j'},
-                                // {"outpath",   required_argument, NULL, 'o'},
+                                {"root",   required_argument, NULL, 'o'},
                                 {0, 0, 0, 0}};
 
     if(argc == 1){
@@ -468,6 +454,9 @@ int main(int argc, char **argv){
           optind++;
         }
         break;
+      case 'p':
+        ipAddress = optarg;
+        break;
       case 'i':
         dataInFile = optarg;
         break;
@@ -475,12 +464,9 @@ int main(int argc, char **argv){
         dataInFile1 = optarg;
         break;
       case 'o':
-        dataOutDir = optarg;
+        rootOutDir = optarg;
         break;
-      case 't':
-        do_rootfile = true;
 
-        break;
       case 'h':
         std::fprintf(stdout, "%s\n", help_usage.c_str());
         std::exit(0);
@@ -518,40 +504,84 @@ int main(int argc, char **argv){
     }
   }/////////getopt end////////////////
 
-  std::filesystem::path rawdata_path(dataInFile);
-  rawdata_path = std::filesystem::absolute(rawdata_path);
-  std::filesystem::file_status st_file = std::filesystem::status(rawdata_path);
-  if (!std::filesystem::exists(st_file)){
-    std::fprintf(stderr, "Unable rawdata file does not exist:  %s\n\n", rawdata_path.c_str());
+  if( ( ipAddress.empty() && dataInFile.empty()) ||
+      ( !ipAddress.empty() && !dataInFile.empty())
+      ){
+      std::fprintf(stderr, "please proivde ONLY 1 of the options [--file0] and [--ip0] \n");
   }
 
-  std::FILE* fp0 = std::fopen(rawdata_path.c_str(), "r");
-  if(!fp0){
-    std::fprintf(stderr, "Unable open rawdata file: %s\n\n", rawdata_path.c_str());
-    throw;
+  std::FILE* fp0 = 0;
+  if(!dataInFile.empty()){
+      std::filesystem::path rawdata_path(dataInFile);
+      rawdata_path = std::filesystem::absolute(rawdata_path);
+      std::filesystem::file_status st_file = std::filesystem::status(rawdata_path);
+      if (!std::filesystem::exists(st_file)){
+	  std::fprintf(stderr, "Unable rawdata file does not exist:  %s\n\n", rawdata_path.c_str());
+      }
+      fp0 = std::fopen(rawdata_path.c_str(), "r");
+      if(!fp0){
+	  std::fprintf(stderr, "Unable open rawdata file: %s\n\n", rawdata_path.c_str());
+	  throw;
+      }
+      std::fprintf(stdout, "Rawdata file0: %s\n\n", rawdata_path.c_str());
   }
 
-  // std::ifstream ifs(rawdata_path.c_str(), std::ios::binary);
-  // if(!ifs.good()){
-  //   std::fprintf(stderr, "Unable open rawdata file: %s\n\n", rawdata_path.c_str());
-  //   throw;
-  // }
-  std::fprintf(stderr, "Rawdata file0: %s\n\n", rawdata_path.c_str());
+  int socketfd0 = 0;
+  if(!ipAddress.empty()){
+      socketfd0 = connectToServer(ipAddress, 24);
+  }
+
+
+  std::filesystem::path root_folder_path = std::filesystem::current_path();
+  if(!rootOutDir.empty()){
+      std::filesystem::path rootOutDir_path(rootOutDir);
+      root_folder_path = std::filesystem::absolute(rootOutDir_path);
+      check_and_create_folder(root_folder_path);
+  }
+  std::string nowstr = getnowstring();
+  std::string basename_datafile = std::string("data_")+nowstr;
+  std::filesystem::path file_rootdata_path = root_folder_path/(basename_datafile+std::string(".root"));
+  TFile *tfout = create_and_open_rootfile(file_rootdata_path);
+  TTree *ttout = 0;
+
+  std::vector<uint16_t> xc;    // x column
+  std::vector<uint16_t> yr;    // y row
+  std::vector<uint8_t>  tsc;   // timestamp of chip
+
+  uint8_t  hid; // hardware id
+  uint16_t tid; // tlu id
+  uint16_t npw; // num of pixelword
+
+  if(tfout){
+    tfout->cd();
+    std::cout<<"setup  rootfd"<<std::endl;
+    ttout = tfout->Get<TTree>("tree_pixel");
+    if(!ttout){
+      std::cout<<"creat new ttree"<<std::endl;
+      ttout = new TTree("tree_pixel","tree_pixel");
+      ttout->SetDirectory(tfout);
+    }
+    ttout->Branch("xc", &xc);
+    ttout->Branch("yr", &yr);
+    ttout->Branch("tsc", &tsc);
+    ttout->Branch("hid", &hid);
+    ttout->Branch("tid", &tid);
+    ttout->Branch("npw", &npw);
+    
+  }
 
   DataInBuffer inbuf;
 
-  std::vector<char> buf(128*5); // char is trivially copyable
+  std::vector<char> buf(128*5);
   size_t len_actual;
 
-  bool isNet = false;
-  int socketfd0 = connectToServer("192.168.200.16", 24);
-  
-  while ( (   len_actual = isNet? socketread(&buf[0], sizeof buf[0], buf.size(), socketfd0 ):  std::fread(&buf[0], sizeof buf[0], buf.size(), fp0 )      ) != 0 ){
+  while ( (   len_actual = socketfd0? socketread(&buf[0], sizeof buf[0], buf.size(), socketfd0 ):  std::fread(&buf[0], sizeof buf[0], buf.size(), fp0 )      ) != 0 ){
     inbuf.append(len_actual, &buf[0]);
     while(inbuf.havepacket()){
       std::string packstr = inbuf.getpacket();
       DataPack dp(packstr);
       dp.print();
+
       if(gBrokenData){
         std::cout<<"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Broken data is detected!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<std::endl;
         std::cout<<"==============================current datapack======================================="<<std::endl;
@@ -559,7 +589,23 @@ int main(int argc, char **argv){
         std::cout<<std::endl;
         std::cout<<"==============================pending data==========================================="<<std::endl;
         inbuf.dump(100);
-        break;
+        throw;
+      }
+
+      tid = dp.tid;
+      hid = dp.daqid;
+      npw = dp.vecpixel.size();
+
+      xc.clear();
+      yr.clear();
+      tsc.clear();
+      for(const auto &pw : dp.vecpixel){
+	  xc.push_back(pw.xcol);
+	  yr.push_back(pw.yrow);
+	  tsc.push_back(pw.tschip);
+      }
+      if(ttout){
+	  ttout->Fill();
       }
     }
   }
@@ -571,5 +617,11 @@ int main(int argc, char **argv){
     std::fprintf(stdout,"\nEnd of File\n");
   }
   std::fclose(fp0);
+
+  if(tfout){
+    ttout->Write();
+    tfout->Close();
+  }
+
   return 0;
 }

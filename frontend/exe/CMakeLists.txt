@@ -11,7 +11,7 @@ add_executable(tcpcontool tcpcontool.cc)
 target_link_libraries(tcpcontool PRIVATE mycommon frontend tcpcon stdc++fs ROOT::RIO ROOT::Tree)
 
 add_executable(datatool datatool.cc)
-# target_link_libraries(datatool PRIVATE mycommon frontend tcpcon stdc++fs ROOT::RIO ROOT::Tree)
+target_link_libraries(datatool PRIVATE mycommon stdc++fs ROOT::RIO ROOT::Tree)
 target_link_libraries(datatool PRIVATE mycommon stdc++fs)
 
 
