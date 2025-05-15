@@ -14,29 +14,94 @@ class TcpBuffer{
 public:
   void append(size_t length, const char *data){
     m_buf += std::string(data, length);
-    updatelength();
+    updatelength(false);
   };
-  
+
   bool havepacket() const{
-    return m_buf.length() >= m_len;
+    return m_buf.length() >= m_len  && m_len!=0;
   };
+
+  bool havepacket_possible() const{
+    bool expectedPack = false;
+    if(m_buf.length() >= m_len  && m_len!=0){
+      expectedPack = true;
+    }
+    return expectedPack;
+  };
+
+  void  resyncpacket(){
+    if(!havepacket_possible()){
+      return;
+    }
+
+    std::string packet(m_buf, 0, m_len);
+    while(havepacket_possible() &&
+          (m_buf[0]!=0b10101010 || (m_buf[m_len-2] != 0b11001100 || m_buf[m_len-1] != 0b11001100))){
+      if(m_buf[0]!=0b10101010){
+        std::string::size_type pos = m_buf.find(0b10101010);
+        if(pos != std::string::npos){
+          m_buf.erase(0, pos);
+          updatelength(true);
+        }else{
+          m_buf.clear();
+          updatelength(true);
+        }
+        continue;
+      }
+      if(m_buf[m_len-2] != 0b11001100 || m_buf[m_len-1] != 0b11001100) {
+        std::string::size_type pos = m_buf.find("\xcc\xcc");
+        m_buf.erase(0, pos+2);
+        updatelength(true);
+      }
+    }
+    return ;
+  }
+
   std::string getpacket(){
     if (!havepacket()){
       std::cerr<<"havepacket return false\n";
       throw;
     }
     std::string packet(m_buf, 0, m_len);
+    fprintf(stdout, "extract datapack_string [%04d]:   ", m_len);
+    for(size_t n = 0; n< packet.size(); n++){
+      if(n!=0 && n%16==0){ std::cout<<"                           "; }
+      uint16_t num = (uint8_t)packet[n];
+      fprintf(stdout, "%02X ", num);
+      if(n%2==1)   std::cout<<" - ";
+      if(n%16==15) std::cout<<std::endl;
+    }
+
     m_buf.erase(0, m_len);
     updatelength(true);
     return packet;
   };
 
+  void dump(size_t maxN){
+    size_t dumpN = m_buf.size()<maxN ? m_buf.size(): maxN;
+    for(size_t n = 0; n< dumpN; n++){
+      uint16_t num = (uint8_t)m_buf[n];
+      fprintf(stdout, "%02X - ", num);
+      if(n%2==1)   std::cout<<" = ";
+      if(n%16==15) std::cout<<std::endl;
+    }
+  };
+
 private:
-  void updatelength(bool = false){m_len =8;}; //for fixed length
+  void updatelength(bool force){
+    // std::cout<< "m_len udpate"<<std::endl;
+    if (force || m_len == 0) {
+      m_len = 0;
+      if (m_buf.length() >= 6) {
+        m_len = ((size_t(uint8_t(m_buf[4]))<<8) + (size_t(uint8_t(m_buf[5]))))  * 4  + 8;
+        // std::cout<< "len update "<< m_len<< std::hex<<" " << size_t(uint8_t(m_buf[4])) << "  "<< size_t(uint8_t(m_buf[5]))<<std::dec<<std::endl;
+      }
+    }
+  };
   //check 1st pack format in updatelength
-  
-  size_t m_len{8};
-  std::string m_buf{""};
+  size_t m_len{0};
+  std::string m_buf;
+//  std::string m_temp_buf;
 };
 
 
