@@ -387,10 +387,13 @@ uint64_t AsyncWatchDog(){
 }
 
 uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, daqb *p_daqb){
-  uint32_t tsf;
-  uint16_t xcol;
-  uint16_t yrow;
-  uint8_t  tsc;
+  std::vector<uint16_t> xc;    // x column
+  std::vector<uint16_t> yr;    // y row
+  std::vector<uint8_t>  tsc;   // timestamp of chip
+
+  uint8_t  hid; // hardware id
+  uint16_t tid; // tlu id
+  uint16_t npw; // num of pixelword
 
   TTree* p_ttree = 0;
   if(p_rootfd){
@@ -402,10 +405,14 @@ uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, daqb *p_daqb){
       p_ttree = new TTree("tree_pixel","tree_pixel");
       p_ttree->SetDirectory(p_rootfd);
     }
-    p_ttree->Branch("xcol", &xcol);
-    p_ttree->Branch("yrow", &yrow);
-    p_ttree->Branch("tsf", &tsf);
+
+    p_ttree->Branch("xc", &xc);
+    p_ttree->Branch("yr", &yr);
     p_ttree->Branch("tsc", &tsc);
+    p_ttree->Branch("hid", &hid);
+    p_ttree->Branch("tid", &tid);
+    p_ttree->Branch("npw", &npw);
+
   }
 
   while(!g_data_done){
@@ -416,16 +423,29 @@ uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, daqb *p_daqb){
     }
     p_daqb->PopFront();
 
-    xcol  = pack->xcol;
-    yrow = pack->yrow;
-    tsc = pack->tschip;
-    tsf = pack->tsfpga;
+    tid = pack->tid;
+    hid = pack->daqid;
+    npw = pack->vecpixel.size();
+
+    xc.clear();
+    yr.clear();
+    tsc.clear();
+    for(const auto &pw : pack->vecpixel){
+        xc.push_back(pw.xcol);
+        yr.push_back(pw.yrow);
+        tsc.push_back(pw.tschip);
+    }
 
     ga_dataFrameN++;
 
     if(pack->CheckDataPack()){
       ga_dataFrameN_valid++;
-      if(p_fd){std::fprintf(p_fd, "%hu  %hu  %hu  %lu \n", xcol, yrow, uint16_t(tsc), tsf);std::fflush(p_fd);}
+      if(p_fd){
+        for(const auto &pw : pack->vecpixel){ 
+          std::fprintf(p_fd, "%hu  %hu  %hu  %lu \n", pw.xcol, pw.yrow, uint16_t(pw.tschip), pack->tid);
+        }
+        std::fflush(p_fd);
+      }
       if(p_ttree){p_ttree->Fill();}
     }
   }
