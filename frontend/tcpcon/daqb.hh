@@ -92,7 +92,6 @@ struct DataPack{
   }
   
   bool CheckDataPack(){
-//    return (idchip == 0b1101) && (isvalid == 1) && (pattern == 0b0000);
     bool check_pack = (packhead==0xaa) && (packend==0xcccc);
     bool check_pixel=true;
     for(size_t n=0; n<vecpixel.size(); n++){
@@ -100,7 +99,7 @@ struct DataPack{
         check_pixel=false;
       }
     }
-    std::cout<<"check_pack:"<<check_pack<<", check_pixel:"<<check_pixel<<std::endl;
+//    std::cout<<"check_pack:"<<check_pack<<", check_pixel:"<<check_pixel<<std::endl;
     return check_pack && check_pixel;
   };
 
@@ -161,6 +160,8 @@ public:
   void PopFront();
   uint64_t Size();
   void ClearBuffer();
+  void ResyncBuffer(){
+    m_tcpcon->TCPResyncBuffer();};
 
   std::string GetStatusString();
   uint64_t AsyncWatchDog();

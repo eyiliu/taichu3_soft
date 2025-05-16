@@ -30,6 +30,8 @@ public:
   };
 
   void  resyncpacket(){
+    m_len=1;
+    std::cout<<"resyncpacket"<<std::endl;
     if(!havepacket_possible()){
       return;
     }
@@ -37,18 +39,24 @@ public:
     std::string packet(m_buf, 0, m_len);
     while(havepacket_possible() &&
           (m_buf[0]!=0b10101010 || (m_buf[m_len-2] != 0b11001100 || m_buf[m_len-1] != 0b11001100))){
+      std::this_thread::sleep_for(std::chrono::milliseconds(1)); //avoid fast loop
       if(m_buf[0]!=0b10101010){
         std::string::size_type pos = m_buf.find(0b10101010);
         if(pos != std::string::npos){
-          m_buf.erase(0, pos);
+          if(pos>0){
+ 	    std::cout<<"resyncpacket(): erase bytes to pack head="<<pos<<std::endl;
+            m_buf.erase(0, pos);
+	  }
           updatelength(true);
         }else{
+          std::cout<<"resyncpacket(): no head found, clean buffer size="<<m_buf.size()<<std::endl;
           m_buf.clear();
           updatelength(true);
         }
         continue;
       }
       if(m_buf[m_len-2] != 0b11001100 || m_buf[m_len-1] != 0b11001100) {
+        std::cout<<"resyncpacket(): erase bytes to pack tail="<<pos+2<<std::endl;
         std::string::size_type pos = m_buf.find("\xcc\xcc");
         m_buf.erase(0, pos+2);
         updatelength(true);
@@ -63,14 +71,14 @@ public:
       throw;
     }
     std::string packet(m_buf, 0, m_len);
-    fprintf(stdout, "extract datapack_string [%04d]:   ", m_len);
-    for(size_t n = 0; n< packet.size(); n++){
-      if(n!=0 && n%16==0){ std::cout<<"                           "; }
-      uint16_t num = (uint8_t)packet[n];
-      fprintf(stdout, "%02X ", num);
-      if(n%2==1)   std::cout<<" - ";
-      if(n%16==15) std::cout<<std::endl;
-    }
+//    fprintf(stdout, "extract datapack_string [%04d]:   ", m_len);
+//    for(size_t n = 0; n< packet.size(); n++){
+//      if(n!=0 && n%16==0){ std::cout<<"                           "; }
+//      uint16_t num = (uint8_t)packet[n];
+//      fprintf(stdout, "%02X ", num);
+//      if(n%2==1)   std::cout<<" - ";
+//      if(n%16==15) std::cout<<std::endl;
+//    }
 
     m_buf.erase(0, m_len);
     updatelength(true);
@@ -138,6 +146,9 @@ public:
   static std::unique_ptr<TcpConnection> waitForNewClient(int sockfd, const std::chrono::milliseconds &timeout, FunProcessMessage recvFun, FunSendDeamon sendFun, void* pobj);
 
   static std::string binToHexString(const char *bin, int len);
+
+  void TCPResyncBuffer(){
+    m_tcpbuf.resyncpacket();};
 
 private:
   std::future<uint64_t> m_fut;
