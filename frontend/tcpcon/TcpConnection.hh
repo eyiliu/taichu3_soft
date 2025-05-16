@@ -56,8 +56,8 @@ public:
         continue;
       }
       if(m_buf[m_len-2] != 0b11001100 || m_buf[m_len-1] != 0b11001100) {
-        std::cout<<"resyncpacket(): erase bytes to pack tail="<<pos+2<<std::endl;
         std::string::size_type pos = m_buf.find("\xcc\xcc");
+        std::cout<<"resyncpacket(): erase bytes to pack tail="<<pos+2<<std::endl;
         m_buf.erase(0, pos+2);
         updatelength(true);
       }
