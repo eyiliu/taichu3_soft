@@ -116,7 +116,7 @@ int main(int argc, char **argv){
   linenoiseSetCompletionCallback([](const char* prefix, linenoiseCompletions* lc)
                                  {
                                    static const char* examples[] =
-                                     {"help", "info", "start", "dac", "stop", "reset",
+                                     {"help", "info", "start", "config", "dac", "stop", "reset",
                                       "quit", "exit", "sensor", "firmware", "set", "get",
                                       NULL};
                                    size_t i;
@@ -143,15 +143,22 @@ int main(int argc, char **argv){
     else if ( std::regex_match(result, std::regex("\\s*(help)\\s*")) ){
       fprintf(stdout, "%s", help_usage_linenoise.c_str());
     }
-
+    if (std::regex_match(result, std::regex("\\s*(start)\\s*")) ){
+      fw.SetFirmwareRegister("upload_data",1);
+    }
     else if ( std::regex_match(result, std::regex("\\s*(stop)|(reset)\\s*")) ){
       std::cout<< "reset chip and fw"<<std::endl;
-      fw.SetFirmwareRegister("CHIP_RESTN_CLEAR", 1);
-      fw.SetFirmwareRegister("CHIP_RESTN_SET", 1);
-      fw.SetFirmwareRegister("CHIP_RESTN_CLEAR", 0);
-      fw.SetFirmwareRegister("CHIP_RESTN_SET", 0);
+      fw.SetFirmwareRegister("upload_data", 0);
+      fw.SetFirmwareRegister("chip_reset", 0);
+      fw.SetFirmwareRegister("chip_reset", 1);
+      fw.SetFirmwareRegister("global_reset", 1);
+      fw.SetFirmwareRegister("all_buffer_reset", 1);
+      // fw.SetFirmwareRegister("CHIP_RESTN_CLEAR", 1);
+      // fw.SetFirmwareRegister("CHIP_RESTN_SET", 1);
+      // fw.SetFirmwareRegister("CHIP_RESTN_CLEAR", 0);
+      // fw.SetFirmwareRegister("CHIP_RESTN_SET", 0);
 
-      fw.SetFirmwareRegister("FW_SOFT_RESET", 0xff);
+      // fw.SetFirmwareRegister("FW_SOFT_RESET", 0xff);
       std::this_thread::sleep_for(std::chrono::milliseconds(1000)); 
     }
     else if ( std::regex_match(result, std::regex("\\s*(sensor)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*")) ){
@@ -212,13 +219,23 @@ int main(int argc, char **argv){
       fw.FlushPixelMask({}, Frontend::MaskType::UNCAL);      
     }
     
-    else if(std::regex_match(result, std::regex("\\s*(start)\\s*"))){
-      fw.SetFirmwareRegister("CHIP_MODE", 0);
+    else if(std::regex_match(result, std::regex("\\s*(config)\\s*"))){
       
-      fw.SetFirmwareRegister("CHIP_RESTN_CLEAR", 1);
-      fw.SetFirmwareRegister("CHIP_RESTN_SET", 1);
-      fw.SetFirmwareRegister("CHIP_RESTN_CLEAR", 0);
-      fw.SetFirmwareRegister("CHIP_RESTN_SET", 0);
+      // fw.SetFirmwareRegister("CHIP_MODE", 0);
+      
+      // fw.SetFirmwareRegister("CHIP_RESTN_CLEAR", 1);
+      // fw.SetFirmwareRegister("CHIP_RESTN_SET", 1);
+      // fw.SetFirmwareRegister("CHIP_RESTN_CLEAR", 0);
+      // fw.SetFirmwareRegister("CHIP_RESTN_SET", 0);
+
+      fw.SetFirmwareRegister("upload_data", 0);
+      fw.SetFirmwareRegister("chip_reset", 0);
+      fw.SetFirmwareRegister("chip_reset", 1);
+      fw.SetFirmwareRegister("global_reset", 1);
+      fw.SetFirmwareRegister("all_buffer_reset", 1);
+      fw.SetFirmwareRegister("set_daq_id", 2);
+      fw.SetFirmwareRegister("global_work_mode", 1);
+      // need to set daq id and trigger mode
 
       fw.SetSensorRegister("RCKI", 1);
       // BSEL 0 ISEL1 0 ISEL0 0 EXCKS 0 DSEL 0 CKESEL 0 RCKI (1) RCKO 0
@@ -235,10 +252,10 @@ int main(int argc, char **argv){
       fw.SetSensorRegisters({{"PSET", 1}, {"OISEL",0}, {"OPSEL", 0}});
       // RESERVED13N7_4 0000 RESERVED13N3 0 PSET (1) OISEL 0(x) OPSEL 0(x) 
       
-      fw.SetFirmwareRegister("SER_DELAY", 0x04); 
-      fw.SetFirmwareRegister("FW_SOFT_RESET", 0xff);
+      // fw.SetFirmwareRegister("SER_DELAY", 0x04); 
+      fw.SetFirmwareRegister("load_m", 0xff);
       std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-      fw.SetFirmwareRegister("SER_DELAY", 0x04);      
+      // fw.SetFirmwareRegister("SER_DELAY", 0x04);      
 
       // // disable all mask_en
       // for(size_t n = 0; n< 64; n++){
@@ -247,9 +264,9 @@ int main(int argc, char **argv){
       // for(size_t n = 0; n< 1024; n++){
       // 	fw.SetSensorRegisters({{"LOADC_E", 0},{"LOADM_E", 0}});
       // }
-      // fw.SetFirmwareRegister("LOAD_M", 0);
-      // fw.SetFirmwareRegister("LOAD_M", 1);
-      // fw.SetFirmwareRegister("LOAD_M", 0);
+      // fw.SetFirmwareRegister("load_m", 0);
+      // fw.SetFirmwareRegister("load_m", 1);
+      // fw.SetFirmwareRegister("load_m", 0);
       // //
 
       // // enable all cal_en
@@ -259,17 +276,17 @@ int main(int argc, char **argv){
       // for(size_t n = 0; n< 1024; n++){
       // 	fw.SetSensorRegisters({{"LOADC_E", 0},{"LOADM_E", 0}});
       // }
-      // fw.SetFirmwareRegister("LOAD_C", 0);
-      // fw.SetFirmwareRegister("LOAD_C", 1);
-      // fw.SetFirmwareRegister("LOAD_C", 0);
+      // fw.SetFirmwareRegister("load_c", 0);
+      // fw.SetFirmwareRegister("load_c", 1);
+      // fw.SetFirmwareRegister("load_c", 0);
       
       fw.FlushPixelMask({}, Frontend::MaskType::MASK);
       fw.FlushPixelMask({}, Frontend::MaskType::UNCAL);
       
       // voltage
-      fw.SetBoardDAC(1, 1.6);
-      fw.SetBoardDAC(0, 0.47);
-      fw.SetBoardDAC(2, 1.6512);      
+      // fw.SetBoardDAC(1, 1.6);
+      // fw.SetBoardDAC(0, 0.47);
+      // fw.SetBoardDAC(2, 1.6512);      
       
       fw.SetSensorRegisters({{"REG_CDAC0_2_0", 0b010}, {"ENIBG", 0}, {"REG_BGR_OFFSET", 0b010}, {"ENBGR", 1}});
       //  REG_CDAC0_2_0 (010) ENIBG 0 REG_BGR_OFFSET (010) ENBGR (1)

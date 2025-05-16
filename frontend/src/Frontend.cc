@@ -176,9 +176,16 @@ void Frontend::SetSensorRegisters(const std::map<std::string, uint64_t>& mapRegV
     
     uint64_t value_ori = 0;
     if(mapRegReadable[address]){
-      value_ori = ReadByte(SensorRegAddr2GlobalRegAddr(address));
+      // value_ori = ReadByte(SensorRegAddr2GlobalRegAddr(address));
+        WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
+        WriteByte(0x0023,0);
+        WriteByte(0x0021,1);
+        value_ori = ReadByte(SensorRegAddr2GlobalRegAddr(address));
     }    
-    WriteByte(SensorRegAddr2GlobalRegAddr(address), (value & mask) | (value_ori & ~mask) );
+    // WriteByte(SensorRegAddr2GlobalRegAddr(address), (value & mask) | (value_ori & ~mask) );
+      WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
+      WriteByte(0x0023,(value & mask) | (value_ori & ~mask));
+      WriteByte(0x0021,0);
   }
 
 }
@@ -220,10 +227,18 @@ void Frontend::SetSensorRegister(const std::string& name, uint64_t value){
 
     uint64_t value_ori = 0;
     if(std::string(json_mode.GetString()).find('r')||std::string(json_mode.GetString()).find('R')){
-      value_ori = ReadByte(SensorRegAddr2GlobalRegAddr(address));
+      // value_ori = ReadByte(SensorRegAddr2GlobalRegAddr(address));
+        WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
+        WriteByte(0x0023,0);
+        WriteByte(0x0021,1);
+        value_ori = ReadByte(0x0024);
+
     }
     
-    WriteByte(SensorRegAddr2GlobalRegAddr(address), ((value<<offset) & mask) | (value_ori & ~mask) );
+    // WriteByte(SensorRegAddr2GlobalRegAddr(address), ((value<<offset) & mask) | (value_ori & ~mask) );
+    WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
+    WriteByte(0x0023,((value<<offset) & mask) | (value_ori & ~mask));
+    WriteByte(0x0021,0);
     
     flag_found_reg = true;
     break;
@@ -236,17 +251,17 @@ void Frontend::SetSensorRegister(const std::string& name, uint64_t value){
 
 uint64_t Frontend::SensorRegAddr2GlobalRegAddr(uint64_t addr){
 
-  uint64_t addr_base = 0x00010000;
-  //0001 0000 0000 10xx xxx0    
-  // wrap 5bit addr into    0b10xxxxx0
-  uint64_t addr_wrap =      0b10000000;  
-  uint64_t addr_sensor = addr;
+  // uint64_t addr_base = 0x00010000;
+  // //0001 0000 0000 10xx xxx0    
+  // // wrap 5bit addr into    0b10xxxxx0
+  // uint64_t addr_wrap =      0b10000000;  
+  // uint64_t addr_sensor = addr;
   uint64_t addr_sensor_mask = 0b11111;
-  uint64_t addr_sensor_offset = 1;
+  // uint64_t addr_sensor_offset = 1;
     
-  addr_wrap = addr_wrap | ((addr_sensor & addr_sensor_mask) <<addr_sensor_offset);
+  // addr_wrap = addr_wrap | ((addr_sensor & addr_sensor_mask) <<addr_sensor_offset);
 
-  uint64_t global_addr = addr_base + addr_wrap;
+  uint64_t global_addr = addr_sensor_mask & addr;
 
   return global_addr;
 }
@@ -303,7 +318,11 @@ uint64_t Frontend::GetSensorRegister(const std::string& name){
       throw;
     }     
     uint64_t address = String2Uint64(json_addr.GetString());
-    uint64_t valueRead  = ReadByte(SensorRegAddr2GlobalRegAddr(address));
+    // uint64_t valueRead  = ReadByte(SensorRegAddr2GlobalRegAddr(address));
+    WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
+    WriteByte(0x0023,0);
+    WriteByte(0x0021,1);
+    uint64_t valueRead = ReadByte(0x0024);
     
     auto& json_mask = json_reg["mask"];
     if(!json_mask.IsString()){
@@ -426,13 +445,15 @@ void Frontend::FlushPixelMask(const std::set<std::pair<uint16_t, uint16_t>> &col
     // std::cout<<"  col #"<<xCol<<std::endl;
   }
   if(maskType == MaskType::CAL || maskType == MaskType::UNCAL ){
-    SetFirmwareRegister("LOAD_C", 0);
-    SetFirmwareRegister("LOAD_C", 1);
-    SetFirmwareRegister("LOAD_C", 0);
+    SetFirmwareRegister("load_c", 0);
+    SetFirmwareRegister("load_c", 1);
+    SetFirmwareRegister("load_c", 0);
+    std::cout<<"load c successfully"<<std::endl;	
   }
   else{
-    SetFirmwareRegister("LOAD_M", 0);
-    SetFirmwareRegister("LOAD_M", 1);
-    SetFirmwareRegister("LOAD_M", 0);
+    SetFirmwareRegister("load_m", 0);
+    SetFirmwareRegister("load_m", 1);
+    SetFirmwareRegister("load_m", 0);
+    std::cout<<"load m successfully"<<std::endl;	
   }
 }

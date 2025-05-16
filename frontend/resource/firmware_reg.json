@@ -1,95 +1,73 @@
 {
     "FIRMWARE_REG":[
 	{
-	    "name":"RESERVE",
+	    "name":"global_work_status",
 	    "address":"0x0000"
 	},
 	{
-	    "name":"DAC_SCLK",
-	    "address":"0x0001"
+	    "name":"global_work_mode",
+	    "address":"0x0000"
 	},
 	{
-	    "name":"DAC_DIN",
+	    "name":"global_reset",
 	    "address":"0x0002"
 	},
 	{
-	    "name":"CHIP_RESTN_CLEAR",
+	    "name":"upload_data",
 	    "address":"0x0003"
 	},
 	{
-	    "name":"CHIP_RESTN_SET",
+	    "name":"all_buffer_reset",
 	    "address":"0x0004"
 	},
 	{
-	    "name":"CHIP_MODE",
+	    "name":"set_daq_id",
 	    "address":"0x0005"
 	},
 	{
-	    "name":"DATA_TX_MODE",
-	    "address":"0x0006"
+	    "name":"chip_reset",
+	    "address":"0x00013"
 	},
 	{
-	    "name":"LOAD_M",
-	    "address":"0x000b"
-	},
-	{
-	    "name":"LOAD_C",
-	    "address":"0x000c"
-	},
-	{
-	    "name":"DPULSE_CLEAR",
-	    "address":"0x000d"
-	},
-	{
-	    "name":"DPULSE_SET",
-	    "address":"0x000e"
-	},
-	{
-	    "name":"APULSE_CLEAR",
-	    "address":"0x000f"
-	},
-	{
-	    "name":"APULSE_SET",
-	    "address":"0x0010"
-	},
-	{
-	    "name":"TRIGGER_DELAY_REG",
-	    "address":"0x0011"
-	},
-	{
-	    "name":"PERI_PAD_EN",
-	    "address":"0x0012"
-	},
-	{
-	    "name":"DAC_NSYNC",
-	    "address":"0x0013"
-	},
-	{
-	    "name":"SER_DELAY",
+	    "name":"chip_serial_delay",
 	    "address":"0x0014"
 	},
 	{
-	    "name":"FW_SOFT_RESET",
+	    "name":"load_m",
 	    "address":"0x0015"
 	},
 	{
-	    "name":"EVENT_COUNTER",
+	    "name":"load_c",
+	    "address":"0x0016"
+	},
+	{
+	    "name":"chip_wr_cfg",
+	    "address":"0x0021"
+	},
+	{
+	    "name":"chip_wr_addr",
+	    "address":"0x0022"
+	},
+	{
+	    "name":"chip_wr_data",
+	    "address":"0x0023"
+	},
+	{
+	    "name":"chip_reg_readback",
+	    "address":"0x0024"
+	},
+	{
+	    "name":"DAC_CFG",
 	    "address":[
-		    "EVENT_COUNTER_H",
-		    "EVENT_COUNTER_L"
+			"0x0051",
+			"0x0052",
+			"0x0053",
+			"0x0054"
 	    ]
 	},
 	{
-	    "name":"EVENT_COUNTER_L",
-	    "address":"0x0005"
-	},
-	{
-	    "name":"EVENT_COUNTER_H",
-	    "address":"0x0006"
-	},
-	{
-	    "name":"CHIP_REG_READ",
-	    "address":"0x0007"
+	    "name":"DAC_RECONFIG",
+	    "address":"0x0019"
 	}
     ]
 }
