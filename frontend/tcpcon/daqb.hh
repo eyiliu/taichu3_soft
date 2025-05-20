@@ -12,19 +12,36 @@
 
 class TcpConnection;
 
-struct DataPack;
-  
-struct DataPack{
-  uint16_t xcol; 
+struct PixelWord{
+  PixelWord(const uint32_t v){ //BE32TOH
+    // valid(1) tschip(8) xcol[9]  yrow[10] pattern[4]
+    pattern =  v & 0xf;
+    yrow    = (v>> 4) & 0x3ff;
+    xcol    = (v>> (4+10)) & 0x1ff;
+    tschip  = (v>> (4+10+9)) & 0xff;
+    isvalid = (v>> (4+10+9+8)) & 0x1;
+    raw = v;
+  }
+
+  uint16_t xcol;
   uint16_t yrow;
   uint8_t  tschip;
-  uint8_t  isvalid;
   uint8_t  pattern;
-  uint8_t  idchip;
-  uint32_t tsfpga;
-  uint64_t raw;
-  
-  static int MakeDataPack(const std::string& str, DataPack& pack){
+  uint8_t  isvalid;
+  uint32_t raw;
+};
+
+//struct DataPack;
+struct DataPack{
+  std::vector<PixelWord> vecpixel;
+  uint8_t packhead;
+  uint8_t daqid;
+  uint16_t tid;
+  uint16_t len;
+  uint16_t packend;
+  std::string packraw; 
+ 
+  int MakeDataPack(const std::string& str){
     static size_t n = 0;
     if(n<100){
       n++;
@@ -37,47 +54,55 @@ struct DataPack{
       std::cout<<std::endl<<"==============="<<std::endl;
     }
 
-    if(str.size()!=8){
+    int miniPackLength=8;
+    if(str.size()<miniPackLength){
+      std::cout<<"DataPack::MakeDataPack: str size wrong="<<str.size()<<std::endl;
       throw;
       return -1;
     }
 
-    pack.raw = *reinterpret_cast<const uint64_t*>(str.data());
-    uint64_t v  = BE64TOH(*reinterpret_cast<const uint64_t*>(str.data()));
-    
-    pack.pattern =  v & 0xf;
-    pack.yrow    = (v>> 4) & 0x3ff;
-    pack.xcol    = (v>> (4+10)) & 0x1ff;
-    pack.tschip  = (v>> (4+10+9)) & 0xff;
-    pack.tsfpga  = (v>> (4+10+9+8)) & 0xfffffff;
-    pack.isvalid = (v>> (4+10+9+8+28)) & 0x1;
-    pack.idchip  = (v>> (4+10+9+8+28+1)) & 0xf;
-
-    if(n<100){
-      pack.testData();
+    packraw = str;
+    const uint8_t *p = reinterpret_cast<const uint8_t*>(packraw.data());
+    packhead = *p;
+    p++;
+    daqid = *p;
+    p++;
+    tid = *p;
+    p++;
+    tid = tid<<8;
+    tid += *p;
+    p++;
+    len = *p;
+    p++;
+    len = len<<8;
+    len += *p;
+    p++;
+    uint16_t pixelwordN = len;
+    for(size_t n = 0; n< pixelwordN; n++){
+      uint32_t v  = BE32TOH(*reinterpret_cast<const uint32_t*>(p));
+      vecpixel.emplace_back(v);
+      p += 4;
     }
+    packend = *p;
+    p++;
+    packend = packend<<8;
+    packend += *p;
+
     return 4;
   }
   
   bool CheckDataPack(){
-    return (idchip == 0b1101) && (isvalid == 1) && (pattern == 0b0000);
+    bool check_pack = (packhead==0xaa) && (packend==0xcccc);
+    bool check_pixel=true;
+    for(size_t n=0; n<vecpixel.size(); n++){
+      if(vecpixel[n].isvalid!=1 || vecpixel[n].pattern != 0b0000){
+        check_pixel=false;
+      }
+    }
+//    std::cout<<"check_pack:"<<check_pack<<", check_pixel:"<<check_pixel<<std::endl;
+    return check_pack && check_pixel;
   };
 
-  bool testData(){
-    uint64_t Bv  = BE64TOH(raw);;
-    uint64_t Lv  = LE64TOH(raw);;
-
-    std::bitset<64> Bvbit(Bv);
-    std::cout<< "BE " << "iiiivffffffffffffffffffffffffffffsssssssscccccccccrrrrrrrrrrpppp"<<std::endl;
-    std::cout<< "BE " << Bvbit <<std::endl;
-
-    // std::bitset<64> Lvbit(Lv);
-    // std::cout<< "LE " << "iiiivffffffffffffffffffffffffffffsssssssscccccccccrrrrrrrrrrpppp"<<std::endl;
-    // std::cout<< "LE " << Lvbit <<std::endl;
-  
-    return 0;
-  }
-  
 };
 
 using daqb_packSP = std::shared_ptr<DataPack>;
@@ -135,6 +160,8 @@ public:
   void PopFront();
   uint64_t Size();
   void ClearBuffer();
+  void ResyncBuffer(){
+    m_tcpcon->TCPResyncBuffer();};
 
   std::string GetStatusString();
   uint64_t AsyncWatchDog();
