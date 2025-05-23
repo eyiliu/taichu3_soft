@@ -70,10 +70,10 @@ uint64_t Frontend::ReadByte(uint64_t address){
   uint8_t reg_value=0;
   rbcp r(m_netip);
   std::string recvStr(100, 0);
-  ///// TODO: wait readback compatible firmware, always return zero
-  // r.DispatchCommand("rd", address, 1, &recvStr); 
-  // reg_value=recvStr[0];
-  // DebugFormatPrint(std::cout, "ReadByte( address= %#016x) return value= %#016x\n", address, reg_value);
+  // TODO: wait readback compatible firmware, always return zero
+  r.DispatchCommand("rd", address, 1, &recvStr); 
+  reg_value=recvStr[0];
+  DebugFormatPrint(std::cout, "ReadByte( address= %#016x) return value= %#016x\n", address, reg_value);
   return reg_value;
 };
 
@@ -180,12 +180,20 @@ void Frontend::SetSensorRegisters(const std::map<std::string, uint64_t>& mapRegV
         WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
         WriteByte(0x0023,0);
         WriteByte(0x0021,1);
-        value_ori = ReadByte(SensorRegAddr2GlobalRegAddr(address));
+        value_ori = ReadByte(0x0024);
     }    
     // WriteByte(SensorRegAddr2GlobalRegAddr(address), (value & mask) | (value_ori & ~mask) );
+    if(SensorRegAddr2GlobalRegAddr(address)==0b00110){
+      WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
+      WriteByte(0x0023,value);
+      WriteByte(0x0021,0);
+    }
+    else
+    {
       WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
       WriteByte(0x0023,(value & mask) | (value_ori & ~mask));
       WriteByte(0x0021,0);
+    }
   }
 
 }
@@ -236,9 +244,16 @@ void Frontend::SetSensorRegister(const std::string& name, uint64_t value){
     }
     
     // WriteByte(SensorRegAddr2GlobalRegAddr(address), ((value<<offset) & mask) | (value_ori & ~mask) );
-    WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
-    WriteByte(0x0023,((value<<offset) & mask) | (value_ori & ~mask));
-    WriteByte(0x0021,0);
+    if(SensorRegAddr2GlobalRegAddr(address)==0b00110){
+      WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
+      WriteByte(0x0023,value);
+      WriteByte(0x0021,0);
+    }
+    else{
+      WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
+      WriteByte(0x0023,((value<<offset) & mask) | (value_ori & ~mask));
+      WriteByte(0x0021,0);
+    }
     
     flag_found_reg = true;
     break;
@@ -405,43 +420,50 @@ void Frontend::FlushPixelMask(const std::set<std::pair<uint16_t, uint16_t>> &col
       mask = false;
     }
   }
-  for(const auto& [xCol, yRow] : colMaskXY){
-    maskMat[xCol][yRow] = true;
+  for(const auto& [xRow, yCol] : colMaskXY){
+    maskMat[xRow][yCol] = true;
+    std::cout<<xRow<<" "<<yCol<<std::endl;
   }
   
   // mask_en
   // std::cout<< "56    63 48    55 40    47 32    39 24    31 16    23 8     15 0      7"<<std::endl;
   // std::cout<< "0------- 1------- 2------- 3------- 4------- 5------- 6------- 7-------"<<std::endl;
   std::vector<uint8_t> vecXColMaskByte_latest;
-  for(int xCol= 1023; xCol>=0; xCol--){
-    std::vector<uint8_t> vecXColMaskByte;  
+  for(int xRow= 0;xRow<=1023; xRow++){
+    std::vector<uint8_t> vecXColMaskByte;
     uint8_t  maskByte = 0;
-    for(int yRow  = 511; yRow>=0; yRow--){
-      uint8_t bitPos = 7- (yRow%8);
+    for(int yCol  = 511; yCol>=0; yCol--){
+      uint8_t bitPos = yCol%8;
       uint8_t bitMask = 1<<bitPos;
-      uint8_t bitValue = maskMat[xCol][yRow]; //get from config
+      uint8_t bitValue = maskMat[xRow][yCol]; //get from config
 
-      //revert
+        //revert
       if(maskType == MaskType::UNMASK || maskType == MaskType::UNCAL){
-	bitValue = ~(bool(bitValue));
+        bitValue = ~(bool(bitValue));
       }
-      
+
       maskByte = (maskByte & (~bitMask)) | (bitValue << bitPos);
-      if(bitPos==7){
-	vecXColMaskByte.push_back(maskByte);
-	maskByte=0;
-      }      
+      if(bitPos==0){
+        vecXColMaskByte.push_back(maskByte);
+        maskByte=0;
+      }
     }
 
     if(vecXColMaskByte != vecXColMaskByte_latest){
       for(const auto & maskByte:  vecXColMaskByte){
 	// std::bitset<8> rawbit(maskByte);
 	// std::cout<< rawbit<<" ";
-	SetSensorRegister("PIXELMASK_DATA", maskByte);
+              // SetSensorRegister("PIXELMASK_DATA", maskByte);
+        WriteByte(0x0022,6);
+        WriteByte(0x0023,maskByte);
+        WriteByte(0x0021,0);
       }
       vecXColMaskByte_latest = vecXColMaskByte;
     }
-    SetSensorRegisters({{"LOADC_E", 0},{"LOADM_E", 0}});
+      WriteByte(0x0022,7);
+      WriteByte(0x0023,0);
+      WriteByte(0x0021,0);
+    // SetSensorRegisters({{"LOADC_E", 0},{"LOADM_E", 0}});
     // std::cout<<"  col #"<<xCol<<std::endl;
   }
   if(maskType == MaskType::CAL || maskType == MaskType::UNCAL ){
@@ -456,4 +478,59 @@ void Frontend::FlushPixelMask(const std::set<std::pair<uint16_t, uint16_t>> &col
     SetFirmwareRegister("load_m", 0);
     std::cout<<"load m successfully"<<std::endl;	
   }
+}
+
+std::set<std::pair<uint16_t, uint16_t>> Frontend::ReadPixelMask_from_file(const std::string& filename)
+{
+  std::fstream file_read_stream;
+  std::filesystem::path p(filename);
+    if (p.extension() != ".txt")
+    {
+        std::cerr << "File: " << filename << " is not a txt file." << std::endl;
+        exit(0);
+    }
+    if (std::filesystem::exists(filename))
+    {
+        try
+        {
+            file_read_stream.open(filename, std::ios::in);
+            std::cout << "File: " << filename << " is open " << std::endl;
+            // Use the file_read_stream object for reading the file
+            // ...
+        }
+        catch (const std::exception &e)
+        {
+            std::cout << "Error opening file: " << e.what() << std::endl;
+            exit(0);
+        }
+    }
+    else
+    {
+        std::cout << "File: " << filename << " don't exist." << std::endl;
+        exit(0);
+    }
+  std::set<std::pair<uint16_t, uint16_t>> pixel_data_set;
+  std::string line;
+  while (std::getline(file_read_stream, line))
+  {
+      std::istringstream iss(line);
+      uint16_t pixel_mask_row;
+      uint16_t pixel_mask_col;
+      // iss >> pixel_mask_row >> pixel_mask_col;
+      if (iss >> pixel_mask_row >> pixel_mask_col)
+      {
+        if(pixel_mask_row<0 || pixel_mask_row>1023 || pixel_mask_col<0 || pixel_mask_col>511){
+          std::cerr << "Invalid pixel mask coordinates: " << pixel_mask_row << ", " << pixel_mask_col << std::endl;
+          continue;
+        }
+        pixel_data_set.insert({pixel_mask_row, pixel_mask_col});
+      }
+      else
+      {
+        std::cerr << "Invalid line format: " << line << std::endl;
+      }
+  }
+  file_read_stream.close();
+  std::cout << "File: " << filename << " is closed " << std::endl;
+  return pixel_data_set;
 }

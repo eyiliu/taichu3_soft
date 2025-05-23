@@ -43,6 +43,7 @@ public:
 
   void FlushPixelMask(const std::set<std::pair<uint16_t, uint16_t>> &colMaskXY,
 		      const MaskType maskType);
+  std::set<std::pair<uint16_t, uint16_t>> ReadPixelMask_from_file(const std::string& filename);
   
 private:
   void  WriteByte(uint64_t address, uint64_t value);

@@ -159,7 +159,7 @@ int main(int argc, char **argv){
       // fw.SetFirmwareRegister("CHIP_RESTN_SET", 0);
 
       // fw.SetFirmwareRegister("FW_SOFT_RESET", 0xff);
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000)); 
+      std::this_thread::sleep_for(std::chrono::milliseconds(10)); 
     }
     else if ( std::regex_match(result, std::regex("\\s*(sensor)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*")) ){
       std::cmatch mt;
@@ -177,7 +177,38 @@ int main(int argc, char **argv){
       uint64_t value = fw.GetSensorRegister(name);
       fprintf(stderr, "%s = %u, %#x\n", name.c_str(), value, value);
     }
-    
+    else if (std::regex_match(result, std::regex("\\s*(sensor)\\s+(setpixelmask)\\s+(\\w+\\.\\w+)\\s*")) ){
+      std::cmatch mt;
+      std::regex_match(result, mt, std::regex("\\s*(sensor)\\s+(setpixelmask)\\s+(\\w+\\.\\w+)\\s*"));
+      std::string name = mt[3].str();
+      std::set<std::pair<uint16_t, uint16_t>> mask_data = fw.ReadPixelMask_from_file(name);
+      fw.FlushPixelMask(mask_data, Frontend::MaskType::MASK);
+      fw.FlushPixelMask(mask_data, Frontend::MaskType::UNCAL);
+      fprintf(stderr, "config mask file from file : %s\n", name.c_str());
+    }
+    else if (std::regex_match(result, std::regex("\\s*(sensor)\\s+(setpixel_openwindow)\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s*")) ){
+      std::cmatch mt;
+      std::regex_match(result, mt, std::regex("\\s*(sensor)\\s+(setpixel_openwindow)\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s*"));
+      int pixel_row_low = std::stoi(mt[3].str());
+      int pixel_row_high = std::stoi(mt[4].str());
+      int pixel_col_low = std::stoi(mt[5].str());
+      int pixel_col_high = std::stoi(mt[6].str());
+      if(pixel_row_low>pixel_row_high || pixel_col_low>pixel_col_high || pixel_row_low<0 || pixel_row_high>1023 || pixel_col_low<0 || pixel_col_high>511){
+        fprintf(stderr, "invalid pixel range: %d %d %d %d\n", pixel_row_low, pixel_row_high, pixel_col_low, pixel_col_high);
+        continue;
+      }
+      std::set<std::pair<uint16_t, uint16_t>> mask_data;
+      for(int xRow = 0; xRow<1024; xRow++){
+        for(int yCol = 0; yCol<512; yCol++){
+          if((xRow <pixel_row_low) || (xRow>pixel_row_high) || (yCol<pixel_col_low) || (yCol>pixel_col_high)){
+            mask_data.insert({xRow, yCol});
+          }
+        }
+      }
+      fw.FlushPixelMask(mask_data, Frontend::MaskType::MASK);
+      fw.FlushPixelMask(mask_data, Frontend::MaskType::UNCAL);
+      fprintf(stderr, "successfully set open window : row %d to %d column %d to %d\n", pixel_row_low, pixel_row_high, pixel_col_low, pixel_col_high);
+    }   
     else if ( std::regex_match(result, std::regex("\\s*(firmware)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*")) ){
       std::cmatch mt;
       std::regex_match(result, mt, std::regex("\\s*(firmware)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*"));
@@ -254,7 +285,7 @@ int main(int argc, char **argv){
       
       // fw.SetFirmwareRegister("SER_DELAY", 0x04); 
       fw.SetFirmwareRegister("load_m", 0xff);
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
       // fw.SetFirmwareRegister("SER_DELAY", 0x04);      
 
       // // disable all mask_en
