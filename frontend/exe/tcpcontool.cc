@@ -448,9 +448,6 @@ uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, daqb *p_daqb){
       }
       if(p_ttree){p_ttree->Fill();}
     }
-    else{
-      p_daqb->ResyncBuffer();
-    }
   }
 
   

@@ -100,6 +100,14 @@ struct DataPack{
       }
     }
 //    std::cout<<"check_pack:"<<check_pack<<", check_pixel:"<<check_pixel<<std::endl;
+    if(!check_pack){
+      std::string head_string=std::bitset<8>(packhead).to_string();
+      std::string end_string =std::bitset<16>(packend).to_string();
+      std::cout<<"CheckDataPack(): wrong pack, header="<<head_string<<", end="<<end_string<<std::endl;
+    }
+    if(!check_pixel){
+      std::cout<<"CheckDataPack(): wrong pixel info"<<std::endl;
+    }
     return check_pack && check_pixel;
   };
 
