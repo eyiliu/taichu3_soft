@@ -244,6 +244,7 @@ void Frontend::SetSensorRegister(const std::string& name, uint64_t value){
     }
     
     // WriteByte(SensorRegAddr2GlobalRegAddr(address), ((value<<offset) & mask) | (value_ori & ~mask) );
+
     if(SensorRegAddr2GlobalRegAddr(address)==0b00110){
       WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
       WriteByte(0x0023,value);
