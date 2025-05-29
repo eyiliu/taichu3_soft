@@ -95,11 +95,27 @@ public:
     }
   };
 
+  void resyncpackethead(){ //resync to make sure buffer starts from 0b10101010
+    if(m_buf.length()==0) return;
+    if(static_cast<unsigned char>(m_buf[0])!=0b10101010){ // match package header=0xaa
+      std::string::size_type pos = m_buf.find(0b10101010);
+      if(pos != std::string::npos){ //header is found
+        std::cout<<"resyncpackethead(): erase bytes to pack head="<<pos<<std::endl;
+        m_buf.erase(0, pos);
+      }
+      else{ //no head is found
+        std::cout<<"resyncpackethead(): no head found, clean buffer, size="<<m_buf.size()<<std::endl;
+        m_buf.clear();
+      }
+    }
+  }
+
 private:
   void updatelength(bool force){
     // std::cout<< "m_len udpate"<<std::endl;
     if (force || m_len == 0) {
       m_len = 0;
+      resyncpackethead();
       if (m_buf.length() >= 6) {
         m_len = ((size_t(uint8_t(m_buf[4]))<<8) + (size_t(uint8_t(m_buf[5]))))  * 4  + 8;
         // std::cout<< "len update "<< m_len<< std::hex<<" " << size_t(uint8_t(m_buf[4])) << "  "<< size_t(uint8_t(m_buf[5]))<<std::dec<<std::endl;

@@ -6,7 +6,7 @@
 	},
 	{
 	    "name":"global_work_mode",
-	    "address":"0x0000"
+	    "address":"0x0001"
 	},
 	{
 	    "name":"global_reset",
