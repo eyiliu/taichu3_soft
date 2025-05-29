@@ -26,7 +26,7 @@
 #include "getopt.h"
 
 #include "daqb.hh"
-
+#include "Frontend.hh"
 
 #include "TFile.h"
 #include "TTree.h"
@@ -35,30 +35,54 @@
 #define dprintf(fmt, ...)                                           \
   do { if (DEBUG_PRINT) std::fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
 
-static  const std::string help_usage
+//help message for command
+static const std::string help_usage 
 (R"(
 Usage:
 --help                  : print usage information, and then quit
+
 --dir     <data_path>   : default[ data ], directory path where data file will be placed
 --host    <ip_address>  : default[ 192.168.10.16 ]
 --port    <tcp_port>    : default[ 24 ]
 --root                  : ttree tfile for data saving
 
+-s json_file: sensor registers [path of  taichupix3_reg.json]
+-f json_file: firmware registers [path of firmware_reg.json]
+reg.json files are located in folder frontend/resource
+
 'help' command in interactive mode provides detail usage information
 )"
- );
+);
 
-
+//help message for linenoise interface
 static  const std::string help_usage_linenoise
 (R"(
+keyword: 
+common: 
+config: 
+data-taking: 
 
-keyword: help, print, reset, conf, start, stop, quit, daqb,
 example:
-  1) quit command line
+  0) quit command line
    > quit
+
+  1) get firmware regiester
+   > firmware get FW_REG_NAME
+
+  2) set firmware regiester
+   > firmware set FW_REG_NAME 10
+
+  3) get sensor regiester
+   > sensor get SN_REG_NAME
+
+  4) set sensor regiester
+   > sensor set SN_REG_NAME 10
 
   10) reset
    > reset
+
+  11) config
+   > config
 
   12) start data taking
    > start
@@ -66,13 +90,9 @@ example:
   13) stop data taking
    > stop
 )"
- );
+);
 
-
-static  std::atomic_size_t  ga_dataFrameN = 0;
-static  std::atomic_size_t  ga_dataFrameN_valid = 0;
-
-
+//get current time to string
 std::string getnowstring(){
   char buffer[80];
   std::time_t t = std::time(nullptr);
@@ -80,12 +100,12 @@ std::string getnowstring(){
   return std::string(buffer, n);
 }
 
-
+//-------------------file functions---------------------
+// dir to collect data
 bool check_and_create_folder(std::filesystem::path path_dir){
-
   std::filesystem::path path_dir_output = std::filesystem::absolute(path_dir);
   std::filesystem::file_status st_dir_output =
-    std::filesystem::status(path_dir_output);
+  std::filesystem::status(path_dir_output);
   if (!std::filesystem::exists(st_dir_output)) {
     std::fprintf(stdout, "Folder does not exist: %s\n\n",
                  path_dir_output.c_str());
@@ -106,10 +126,8 @@ bool check_and_create_folder(std::filesystem::path path_dir){
       }
   return true;
 }
-
-
+// txt file
 std::FILE * create_and_open_file(std::filesystem::path filepath){
-
   std::filesystem::path filepath_abs = std::filesystem::absolute(filepath);
   std::filesystem::file_status st_file = std::filesystem::status(filepath_abs);
   if (std::filesystem::exists(st_file)) {
@@ -124,7 +142,7 @@ std::FILE * create_and_open_file(std::filesystem::path filepath){
   }
   return fp;
 }
-
+// root file
 TFile* create_and_open_rootfile(const std::filesystem::path& filepath){
 
   std::filesystem::path filepath_abs = std::filesystem::absolute(filepath);
@@ -141,14 +159,21 @@ TFile* create_and_open_rootfile(const std::filesystem::path& filepath){
   return tf;
 }
 
+//-------------------Async functions and counts-------------------
+//count for (valid) packages collected
+static  std::atomic_size_t  ga_dataFrameN = 0;
+static  std::atomic_size_t  ga_dataFrameN_valid = 0;
 
 static sig_atomic_t g_data_done = 0;
 static sig_atomic_t g_watch_done = 0;
 
+std::future<uint64_t> fut_async_watch;
+std::future<uint64_t> fut_async_data;
+
 uint64_t AsyncWatchDog();
 uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, daqb *p_daqb);
 
-
+//-------------------main-------------------------
 int main(int argc, char **argv){
   signal(SIGINT, [](int){g_data_done+=1;  g_watch_done+=1;});
 
@@ -157,6 +182,9 @@ int main(int argc, char **argv){
   uint16_t daqbPortN = 24;
   int do_verbose = 0;
   bool do_rootfile = false;
+
+  std::string frfile_opt;
+  std::string srfile_opt;
   {////////////getopt begin//////////////////
     struct option longopts[] = {{"help",      no_argument, NULL, 'h'},//option -W is reserved by getopt
                                 {"verbose",   no_argument, NULL, 'v'},//val
@@ -164,9 +192,12 @@ int main(int argc, char **argv){
                                 {"root",  no_argument, NULL, 't'},
                                 {"host",  required_argument, NULL, 'o'},
                                 {"port",  required_argument, NULL, 'r'},
+
+                                {"srfile",  required_argument, NULL, 's'},
+                                {"frfile",  required_argument, NULL, 'f'},
                                 {0, 0, 0, 0}};
 
-    if(argc == 1){
+    if(argc == 1){ //no options
       std::fprintf(stderr, "%s\n", help_usage.c_str());
       std::exit(1);
     }
@@ -198,12 +229,19 @@ int main(int argc, char **argv){
         break;
       case 't':
 	do_rootfile = true;
-	
         break;
       case 'h':
         std::fprintf(stdout, "%s\n", help_usage.c_str());
         std::exit(0);
         break;
+
+      case 'f':
+        frfile_opt=optarg;
+        break;
+      case 's':
+        srfile_opt=optarg;
+        break;
+
         /////generic part below///////////
       case 0:
         // getopt returns 0 for not-NULL flag option, just keep going
@@ -237,6 +275,7 @@ int main(int argc, char **argv){
     }
   }/////////getopt end////////////////
 
+  //set DAQ file
   std::filesystem::path data_folder_path(dataFolderPath);
   std::filesystem::path data_folder_path_abs = std::filesystem::absolute(data_folder_path);
   check_and_create_folder(data_folder_path_abs);
@@ -244,7 +283,6 @@ int main(int argc, char **argv){
   
   std::FILE *fp_data=0;
   TFile *tf_data=0;
-
   std::unique_ptr<daqb> daqbup;
   try{
     daqbup.reset(new daqb("taichu_daqb", daqbHost_ipstr, daqbPortN));
@@ -253,13 +291,26 @@ int main(int argc, char **argv){
     exit(-1);
   }
 
-  
+  //set register 
+  if(srfile_opt.empty() || frfile_opt.empty() ){
+    fprintf(stderr, "\ninsufficient options.\n%s\n\n\n",help_usage.c_str());
+    return 1;
+  }
+  std::string reglist_path_sensor = srfile_opt;
+  std::string reglist_path_firmware = frfile_opt;  
+  std::string reglist_jsstr_sensor   = Frontend::LoadFileToString(reglist_path_sensor);
+  std::string reglist_jsstr_firmware = Frontend::LoadFileToString(reglist_path_firmware);
+  Frontend fw(reglist_jsstr_sensor, reglist_jsstr_firmware, daqbHost_ipstr);
+
+  //-------------------linenoise-------------------------
   std::filesystem::path linenoise_history_path = std::filesystem::temp_directory_path() / "tcpcontool.history.txt";
   linenoiseHistoryLoad(linenoise_history_path.string().c_str());
   linenoiseSetCompletionCallback([](const char* prefix, linenoiseCompletions* lc)
                                  {
                                    static const char* examples[] =
-                                     {"help", "print", "reset", "conf", "start", "stop", "quit", "exit",
+                                     {"help", "quit", "exit",
+                                      "reset", "config", "start", "stop",
+                                      "sensor", "firmware", "dac", "full",
                                       NULL};
                                    size_t i;
                                    for (i = 0;  examples[i] != NULL; ++i) {
@@ -269,11 +320,7 @@ int main(int argc, char **argv){
                                    }
                                  } );
 
-
-  std::future<uint64_t> fut_async_watch;
-  std::future<uint64_t> fut_async_data;
-
-  const char* prompt = "\x1b[1;32mtcpcontool\x1b[0m> ";
+  const char* prompt = "\x1b[1;32mConfigDAQ\x1b[0m> ";    
   while (1) {
     char* result = linenoise(prompt);
     if (result == NULL) {
@@ -286,8 +333,18 @@ int main(int argc, char **argv){
       printf("quiting \n");
       break;
     }
-    else if ( std::regex_match(result, std::regex("\\s*(reset)\\s*")) ){
+
+    //basic command: reset, config, start, stop
+    else if ( std::regex_match(result, std::regex("\\s*(reset)\\s*")) ){ //reset
       printf("reset\n");
+      //register
+      fw.SetFirmwareRegister("upload_data", 0);
+      fw.SetFirmwareRegister("chip_reset", 0);
+      fw.SetFirmwareRegister("chip_reset", 1);
+      fw.SetFirmwareRegister("global_reset", 1);
+      fw.SetFirmwareRegister("all_buffer_reset", 1);
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      //tcp
       daqbup->daq_reset();
       g_data_done = 1;
       if(fut_async_data.valid()){
@@ -298,14 +355,98 @@ int main(int argc, char **argv){
       if(fut_async_watch.valid()){
         fut_async_data.get();
       }
+    }
+    else if ( std::regex_match(result, std::regex("\\s*(config)\\s*")) ){ //config
+      printf("config\n");
 
+      fw.SetFirmwareRegister("upload_data", 0);
+      fw.SetFirmwareRegister("chip_reset", 0);
+      fw.SetFirmwareRegister("chip_reset", 1);
+      fw.SetFirmwareRegister("global_reset", 1);
+      fw.SetFirmwareRegister("all_buffer_reset", 1);
+      fw.SetFirmwareRegister("set_daq_id", 2);
+      fw.SetFirmwareRegister("global_work_mode", 1); 
+      // need to set daq id and trigger mode
+
+      fw.SetSensorRegister("RCKI", 1);
+      // BSEL 0 ISEL1 0 ISEL0 0 EXCKS 0 DSEL 0 CKESEL 0 RCKI (1) RCKO 0
+
+      fw.SetSensorRegisters({{"TRIGN",1}, {"CPRN",1}, {"DOFREQ", 0b01} });
+      // TRIGN (1) CPRN (1) DOFREQ 01 SMOD 0 CTM 0 SPI_D 0 TMOD 0
+      // 11010000
+
+      fw.SetSensorRegisters({{"REG_BGR_TC", 0b01},{"C_MASK_EN", 0}});
+      // REG_BGR_TC 01 BPLDO 0 LDO_REG1 0 LDO_REG0 0 C_MASK_EN 0 ENTP 0 EN10B 0
+      // 01000000
+
+      fw.SetSensorRegisters({{"PSET", 1}, {"OISEL",0}, {"OPSEL", 0}});
+      // RESERVED13N7_4 0000 RESERVED13N3 0 PSET (1) OISEL 0(x) OPSEL 0(x)
+
+      // fw.SetFirmwareRegister("SER_DELAY", 0x04);
+      fw.SetFirmwareRegister("load_m", 0xff);
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+      fw.FlushPixelMask({}, Frontend::MaskType::MASK);
+      fw.FlushPixelMask({}, Frontend::MaskType::UNCAL);
+
+      // voltage
+      // fw.SetBoardDAC(1, 1.6);
+      // fw.SetBoardDAC(0, 0.47);
+      // fw.SetBoardDAC(2, 1.6512);
+
+      fw.SetSensorRegisters({{"REG_CDAC0_2_0", 0b010}, {"ENIBG", 0}, {"REG_BGR_OFFSET", 0b010}, {"ENBGR", 1}});
+      //  REG_CDAC0_2_0 (010) ENIBG 0 REG_BGR_OFFSET (010) ENBGR (1)
+
+      fw.SetSensorRegisters({{"REG_CDAC1_0", 0}, {"EN_CDAC_T0", 1}, {"EN_CDAC0", 1}, {"REG_CDAC0_7_3", 0b00000}});
+      //  REG_CDAC1_0 0  EN_CDAC_T0 1 EN_CDAC0 1 REG_CDAC0_7_3 00000
+
+      fw.SetSensorRegisters({{"EN_CDAC1", 1}, {"REG_CDAC1_7_1", 0b0010000}}); ////TODO::  ITHR  32 + prefix 1
+      //  EN_CDAC1 1 REG_CDAC1_7_1 (0010000)
+
+      fw.SetSensorRegisters({{"REG_CDAC2_6_0", 0b0000101}, {"EN_CDAC_T1", 1}});
+      //  REG_CDAC2_6_0 (0000101)  EN_CDAC_T1 1
+
+      fw.SetSensorRegisters({{"REG_VDAC0_4_0", 0b00000}, {"EN_CDAC_T2", 1},  {"EN_CDAC2", 1}, {"REG_CDAC2_7", 0}});
+      //  REG_VDAC0_4_0 00000  EN_CDAC_T2 1  EN_CDAC2 1 REG_CDAC2_7 0
+
+      fw.SetSensorRegisters({{"REG_VDAC0_C2_0", 0b000}, {"REG_VDAC0_9_5", 0b00000}});
+      //  REG_VDAC0_C2_0 000 REG_VDAC0_9_5 00000
+
+      fw.SetSensorRegisters({{"REG_VDAC1_2_0", 0b110}, {"EN_VDAC0", 1}, {"REG_VDAC0_T", 0b11}, {"REG_VDAC0_C4_3", 0b10}});
+      //  REG_VDAC1_2_0 (110) EN_VDAC0 1 REG_VDAC0_T 11 REG_VDAC0_C4_3 10
+
+      fw.SetSensorRegisters({{"REG_VDAC1_C0", 0},{"REG_VDAC1_9_3", 0b0000000}});
+      //  REG_VDAC1_C0 0 REG_VDAC1_9_3 0000000
+
+      fw.SetSensorRegisters({{"REG_VDAC2_0",1},{"EN_VDAC1", 1},{"REG_VDAC1_T",0b11},{"REG_VDAC1_C4_1",0b1000}});
+      //  REG_VDAC2_0 (1) EN_VDAC1 1  REG_VDAC1_T 11 REG_VDAC1_C4_1 1000
+
+      fw.SetSensorRegisters({{"REG_VDAC2_8_1", 0b10010101}});
+      //  REG_VDAC2_8_1 10010101
+
+      fw.SetSensorRegisters({{"REG_VDAC2_T", 0b11}, {"REG_VDAC2_C", 0b10000}, {"REG_VDAC2_9", 0}});
+      //  REG_VDAC2_T 11 REG_VDAC2_C 10000  REG_VDAC2_9 0
+
+      fw.SetSensorRegisters({{"REG_VDAC3_6_0", 0b1000100}, {"EN_VDAC2", 1}});
+      //  REG_VDAC3_6_0 1000100  EN_VDAC2 1
+
+      fw.SetSensorRegisters({{"REG_VDAC3_C", 0b10000},  {"REG_VDAC3_9_7", 0b010}});
+      //  REG_VDAC3_C 10000  REG_VDAC3_9_7 010
+
+      fw.SetSensorRegisters({{"REG_MUXO", 0b01}, {"REG_MUX", 0b010}, {"EN_VDAC3", 1}, {"REG_VDAC3_T", 0b11}});
+      //  REG_MUXO 01 REG_MUX 010  EN_VDAC3 1 REG_VDAC2_T 11
+
+      fw.SetSensorRegisters({{"REG_CDAC_8NA4_0", 0b00010}, {"EN_CDAC_8NA", 0}, {"REG_CDAC_8NA_BGR", 1}, {"REG_SEL_CDAC_8NA", 0}});
+      //  REG_CDAC_8NA4_0 (00010)  EN_CDAC_8NA (0)   REG_CDAC_8NA_BGR 1   REG_SEL_CDAC_8NA (0)
+
+      fw.SetSensorRegisters({{"REG_CDAC_8NA_TRIM", 0b00}, {"REG_CDAC_8NA5", 0}});
+      //  00000 REG_CDAC_8NA_TRIM 00 REG_CDAC_8NA5 0
     }
-    else if ( std::regex_match(result, std::regex("\\s*(conf)\\s*")) ){
-      printf("conf\n");
-      daqbup->daq_conf_default();
-    }
-    else if ( std::regex_match(result, std::regex("\\s*(start)\\s*")) ){
+    else if ( std::regex_match(result, std::regex("\\s*(start)\\s*")) ){ //start data-taking
       printf("start\n");
+      //register 
+      fw.SetFirmwareRegister("upload_data",1);
+      //tcp 
       std::string nowstr = getnowstring();
       std::string basename_datafile = std::string("data_")+nowstr;
       std::filesystem::path file_rawdata_path = data_folder_path_abs/(basename_datafile+std::string(".dat"));
@@ -321,22 +462,121 @@ int main(int argc, char **argv){
     }
     else if ( std::regex_match(result, std::regex("\\s*(stop)\\s*")) ){
       printf("stop\n");
+      //register
+      fw.SetFirmwareRegister("upload_data", 0);
+      fw.SetFirmwareRegister("chip_reset", 0);
+      fw.SetFirmwareRegister("chip_reset", 1);
+      fw.SetFirmwareRegister("global_reset", 1);
+      fw.SetFirmwareRegister("all_buffer_reset", 1);
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+      //tcp
       daqbup->daq_stop_run();
       g_data_done = 1;
       if(fut_async_data.valid())
         fut_async_data.get();
     }
+
+    //---sensor registers---
+    else if(std::regex_match(result, std::regex("\\s*(full)\\s*"))){ //open full window
+      fw.FlushPixelMask({}, Frontend::MaskType::MASK);
+      fw.FlushPixelMask({}, Frontend::MaskType::UNCAL);
+    }
+    else if ( std::regex_match(result, std::regex("\\s*(sensor)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*")) ){
+      std::cmatch mt;
+      std::regex_match(result, mt, std::regex("\\s*(sensor)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*"));
+      std::string  name  = mt[3].str();
+      uint64_t value = Frontend::String2Uint64(mt[4].str());
+      fprintf(stderr, "%s = %u, %#x\n", name.c_str(), value, value);
+
+      fw.SetSensorRegister(name, value);
+    }
+    else if ( std::regex_match(result, std::regex("\\s*(sensor)\\s+(get)\\s+(\\w+)\\s*")) ){
+      std::cmatch mt;
+      std::regex_match(result, mt, std::regex("\\s*(sensor)\\s+(get)\\s+(\\w+)\\s*"));
+      std::string name = mt[3].str();
+      uint64_t value = fw.GetSensorRegister(name);
+      fprintf(stderr, "%s = %u, %#x\n", name.c_str(), value, value);
+    }
+    else if (std::regex_match(result, std::regex("\\s*(sensor)\\s+(setpixelmask)\\s+(\\w+\\.\\w+)\\s*")) ){
+      std::cmatch mt;
+      std::regex_match(result, mt, std::regex("\\s*(sensor)\\s+(setpixelmask)\\s+(\\w+\\.\\w+)\\s*"));
+      std::string name = mt[3].str();
+      std::set<std::pair<uint16_t, uint16_t>> mask_data = fw.ReadPixelMask_from_file(name);
+      fw.FlushPixelMask(mask_data, Frontend::MaskType::MASK);
+      fw.FlushPixelMask(mask_data, Frontend::MaskType::UNCAL);
+      fprintf(stderr, "config mask file from file : %s\n", name.c_str());
+    }
+    else if (std::regex_match(result, std::regex("\\s*(sensor)\\s+(setpixel_openwindow)\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s*")) ){
+      std::cmatch mt;
+      std::regex_match(result, mt, std::regex("\\s*(sensor)\\s+(setpixel_openwindow)\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s+(\\w+)\\s*"));
+      int pixel_row_low = std::stoi(mt[3].str());
+      int pixel_row_high = std::stoi(mt[4].str());
+      int pixel_col_low = std::stoi(mt[5].str());
+      int pixel_col_high = std::stoi(mt[6].str());
+      if(pixel_row_low>pixel_row_high || pixel_col_low>pixel_col_high || pixel_row_low<0 || pixel_row_high>1023 || pixel_col_low<0 || pixel_col_high>511){
+        fprintf(stderr, "invalid pixel range: %d %d %d %d\n", pixel_row_low, pixel_row_high, pixel_col_low, pixel_col_high);
+        continue;
+      }
+      std::set<std::pair<uint16_t, uint16_t>> mask_data;
+      for(int xRow = 0; xRow<1024; xRow++){
+        for(int yCol = 0; yCol<512; yCol++){
+          if((xRow <pixel_row_low) || (xRow>pixel_row_high) || (yCol<pixel_col_low) || (yCol>pixel_col_high)){
+            mask_data.insert({xRow, yCol});
+          }
+        }
+      }
+      fw.FlushPixelMask(mask_data, Frontend::MaskType::MASK);
+      fw.FlushPixelMask(mask_data, Frontend::MaskType::UNCAL);
+      fprintf(stderr, "successfully set open window : row %d to %d column %d to %d\n", pixel_row_low, pixel_row_high, pixel_col_low, pixel_col_high);
+    }
+
+    //firmware registers
+    else if ( std::regex_match(result, std::regex("\\s*(firmware)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*")) ){
+      std::cmatch mt;
+      std::regex_match(result, mt, std::regex("\\s*(firmware)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*"));
+      std::string  name  = mt[3].str();
+      uint64_t value = Frontend::String2Uint64(mt[4].str());
+      fprintf(stderr, "%s = %u, %#x\n", name.c_str(), value, value);
+      fw.SetFirmwareRegister(name, value);
+    }
+    else if (std::regex_match(result, std::regex("\\s*(firmware)\\s+(get)\\s+(\\w+)\\s*")) ){
+      std::cmatch mt;
+      std::regex_match(result, mt, std::regex("\\s*(firmware)\\s+(get)\\s+(\\w+)\\s*"));
+      std::string name = mt[3].str();
+      uint64_t value = fw.GetFirmwareRegister(name);
+      fprintf(stderr, "%s = %u, %#x\n", name.c_str(), value, value);
+    }
+    else if ( std::regex_match(result, std::regex("\\s*(dac)\\s+(set)\\s+([a-dA-D])\\s+([-+]?[0-9]*\\.?[0-9]+)\\s*")) ){
+      std::cmatch mt;
+      std::regex_match(result, mt, std::regex("\\s*(dac)\\s+(set)\\s+([a-dA-D])\\s+([-+]?[0-9]*\\.?[0-9]+)\\s*"));
+      uint32_t ch_n = toupper(mt[3].str()[0]) - 'A';
+      double value = std::stod(mt[4].str());
+
+      std::cout<< "set board dac "<<ch_n << " " << value << " v"<<std::endl;
+      fw.SetBoardDAC(ch_n, value);
+      //        N  N  N RW CM CM CM CM CH CH CH CH  D  D  D  D  D  D  D  D  D  D  D  D  D  D  D  D  M  M  M  M
+      // code2 [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0]
+      // ch_A  0b0011000000100001   0.47 (of 2.5)
+      //
+      // code2 [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0, 0]
+      // ch_B  0b1010001111010110   1.6 (of 2.5)
+      //
+      // code2 [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0]
+      // ch_C  0b1010100100010101   1.6512 (of 2.5)
+    }
+
+    //---no correct command---
     else{
       std::printf("Error, unknown command:    %s\n", result);
     }
 
+    // linenoise history
     linenoiseHistoryAdd(result);
     free(result);
     linenoiseHistorySave(linenoise_history_path.string().c_str());
     linenoiseHistoryFree();
     linenoiseHistoryLoad(linenoise_history_path.string().c_str());
-  }
-
+  } //end of while(1) for linenoise
 
   g_data_done = 1;
   if(fut_async_data.valid())
@@ -348,6 +588,7 @@ int main(int argc, char **argv){
   return 0;
 }
 
+//---------------Async functions------------------
 uint64_t AsyncWatchDog(){
   ga_dataFrameN = 0;
   ga_dataFrameN_valid = 0;
