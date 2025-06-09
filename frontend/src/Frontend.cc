@@ -315,7 +315,7 @@ uint64_t Frontend::GetFirmwareRegister(const std::string& name){
 }
 
 
-uint64_t Frontend::GetSensorRegister(const std::string& name){  
+uint64_t Frontend::GetSensorRegister(const std::string& name){
   DebugFormatPrint(std::cout, "INFO<%s>:  %s( name=%s )\n",__func__, __func__, name.c_str());
   static const std::string array_name("SENSOR_REG");
   auto& json_array = m_jsdoc_sensor[array_name];
@@ -332,20 +332,20 @@ uint64_t Frontend::GetSensorRegister(const std::string& name){
     if(!json_addr.IsString()){
       FormatPrint(std::cerr, "ERROR<%s>: unknown address format, requires a json string<%s>\n", __func__, Stringify(json_addr).c_str());
       throw;
-    }     
+    }
     uint64_t address = String2Uint64(json_addr.GetString());
     // uint64_t valueRead  = ReadByte(SensorRegAddr2GlobalRegAddr(address));
     WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
     WriteByte(0x0023,0);
     WriteByte(0x0021,1);
     uint64_t valueRead = ReadByte(0x0024);
-    
+
     auto& json_mask = json_reg["mask"];
     if(!json_mask.IsString()){
       FormatPrint(std::cerr, "ERROR<%s>: unknown mask format, requires a json string<%s>\n", __func__, Stringify(json_mask).c_str());
       throw;
     }
-    uint64_t mask = String2Uint64(json_mask.GetString());    
+    uint64_t mask = String2Uint64(json_mask.GetString());
     uint8_t offset = LeastNoneZeroOffset(mask);
 
     value  = (valueRead & mask) >> offset;
@@ -356,9 +356,9 @@ uint64_t Frontend::GetSensorRegister(const std::string& name){
   if(!flag_found_reg){
     FormatPrint(std::cerr, "ERROR<%s>: unable to find register<%s> in array<%s>\n", __func__, name.c_str(), array_name.c_str());
     throw;
-  }  
+  }
   DebugFormatPrint(std::cout, "INFO<%s>: %s( name=%s ) return value=%#016x \n", __func__, __func__, name.c_str(), value);
-  return value;  
+  return value;
 }
 
 void Frontend::SetBoardDAC(uint32_t ch, double voltage){
@@ -393,7 +393,7 @@ std::string Frontend::LoadFileToString(const std::string& p){
     // try relative path to binary;
     std::filesystem::path alt_path = binaryPath();
     alt_path = alt_path / p;
-    
+
     std::string alt_path_str = alt_path.string();
     std::ifstream ifs_bin(alt_path_str);
     if(ifs_bin.good()){
@@ -425,7 +425,7 @@ void Frontend::FlushPixelMask(const std::set<std::pair<uint16_t, uint16_t>> &col
     maskMat[xRow][yCol] = true;
     std::cout<<xRow<<" "<<yCol<<std::endl;
   }
-  
+
   // mask_en
   // std::cout<< "56    63 48    55 40    47 32    39 24    31 16    23 8     15 0      7"<<std::endl;
   // std::cout<< "0------- 1------- 2------- 3------- 4------- 5------- 6------- 7-------"<<std::endl;
@@ -471,13 +471,13 @@ void Frontend::FlushPixelMask(const std::set<std::pair<uint16_t, uint16_t>> &col
     SetFirmwareRegister("load_c", 0);
     SetFirmwareRegister("load_c", 1);
     SetFirmwareRegister("load_c", 0);
-    std::cout<<"load c successfully"<<std::endl;	
+    std::cout<<"load c successfully"<<std::endl;
   }
   else{
     SetFirmwareRegister("load_m", 0);
     SetFirmwareRegister("load_m", 1);
     SetFirmwareRegister("load_m", 0);
-    std::cout<<"load m successfully"<<std::endl;	
+    std::cout<<"load m successfully"<<std::endl;
   }
 }
 

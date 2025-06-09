@@ -21,10 +21,10 @@
 class Frontend{
 public:
   enum MaskType {MASK, CAL, UNMASK, UNCAL};
-  
+
   Frontend(const std::string& sensor_jsstr,
-	   const std::string& firmware_jsstr,
-	   const std::string& netip);
+           const std::string& firmware_jsstr,
+           const std::string& netip);
 
 
   // bool OpenTCP(const std::string& ip);
@@ -42,9 +42,9 @@ public:
   uint64_t SensorRegAddr2GlobalRegAddr(uint64_t addr);
 
   void FlushPixelMask(const std::set<std::pair<uint16_t, uint16_t>> &colMaskXY,
-		      const MaskType maskType);
+                      const MaskType maskType);
   std::set<std::pair<uint16_t, uint16_t>> ReadPixelMask_from_file(const std::string& filename);
-  
+
 private:
   void  WriteByte(uint64_t address, uint64_t value);
   uint64_t ReadByte(uint64_t address);
@@ -53,11 +53,11 @@ public:
   static std::string LoadFileToString(const std::string& p);
   static uint64_t String2Uint64(const std::string& str);
 
-  
+
   template<typename ... Args>
   static std::string FormatString( const std::string& format, Args ... args ){
     std::size_t size = snprintf( nullptr, 0, format.c_str(), args ... ) + 1;
-    std::unique_ptr<char[]> buf( new char[ size ] ); 
+    std::unique_ptr<char[]> buf( new char[ size ] );
     std::snprintf( buf.get(), size, format.c_str(), args ... );
     return std::string( buf.get(), buf.get() + size - 1 );
   }

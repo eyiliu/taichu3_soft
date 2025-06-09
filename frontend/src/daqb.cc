@@ -9,7 +9,6 @@
 #pragma GCC diagnostic ignored "-Wpmf-conversions"
 
 
-
 #ifndef DEBUG_PRINT
 #define DEBUG_PRINT 0
 #endif
@@ -62,7 +61,6 @@ void daqb::daq_start_run(){
 
 void daqb::daq_stop_run(){
   m_isDataAccept= false;
-  
   
   m_is_async_watching = false;
   if(m_fut_async_watch.valid()){
