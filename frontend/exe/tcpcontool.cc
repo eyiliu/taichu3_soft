@@ -25,7 +25,7 @@
 #include "linenoise.h"
 #include "getopt.h"
 
-#include "daqb.hh"
+#include "Frontend.hh"
 
 
 #include "TFile.h"
@@ -146,7 +146,7 @@ static sig_atomic_t g_data_done = 0;
 static sig_atomic_t g_watch_done = 0;
 
 uint64_t AsyncWatchDog();
-uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, daqb *p_daqb);
+uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, Frontend *p_daqb);
 
 
 int main(int argc, char **argv){
@@ -245,9 +245,9 @@ int main(int argc, char **argv){
   std::FILE *fp_data=0;
   TFile *tf_data=0;
 
-  std::unique_ptr<daqb> daqbup;
+  std::unique_ptr<Frontend> daqbup;
   try{
-    daqbup.reset(new daqb("taichu_daqb", daqbHost_ipstr, daqbPortN));
+    daqbup.reset(new daqb(daqbHost_ipstr));
   }catch(...){
     daqbup.reset();
     exit(-1);

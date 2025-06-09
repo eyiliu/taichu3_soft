@@ -1,9 +1,9 @@
+#include "Frontend.hh"
 
 #include <regex>
 #include <iostream>
 #include <thread>
 
-#include "daqb.hh"
 #include "TcpConnection.hh"
 
 #pragma GCC diagnostic ignored "-Wpmf-conversions"
@@ -23,7 +23,7 @@
 
 
 
-daqb::~daqb(){
+Frontend::~Frontend(){
   m_tcpcon.reset();
 
   m_is_async_watching = false;
@@ -31,7 +31,7 @@ daqb::~daqb(){
     m_fut_async_watch.get();
 }
 
-void daqb::daq_start_run(){
+void Frontend::daq_start_run(){
   m_vec_ring_ev.clear();
   m_vec_ring_ev.resize(m_size_ring);
   m_count_ring_write = 0;
@@ -50,18 +50,18 @@ void daqb::daq_start_run(){
   //rbcp start
   m_isDataAccept= true;
 
-  m_tcpcon =  TcpConnection::connectToServer(m_host,  m_port, reinterpret_cast<FunProcessMessage>(&daqb::perConnProcessRecvMesg), nullptr, this);
+  m_tcpcon =  TcpConnection::connectToServer(m_netip,  24, reinterpret_cast<FunProcessMessage>(&Frontend::perConnProcessRecvMesg), nullptr, this);
 
   if(!m_is_async_watching){
-    m_fut_async_watch = std::async(std::launch::async, &daqb::AsyncWatchDog, this);
+    m_fut_async_watch = std::async(std::launch::async, &Frontend::AsyncWatchDog, this);
   }
 
   return;
 }
 
-void daqb::daq_stop_run(){
+void Frontend::daq_stop_run(){
   m_isDataAccept= false;
-  
+
   m_is_async_watching = false;
   if(m_fut_async_watch.valid()){
     m_fut_async_watch.get();
@@ -70,24 +70,24 @@ void daqb::daq_stop_run(){
   return;
 }
 
-void daqb::daq_reset(){
+void Frontend::daq_reset(){
   m_isDataAccept= false;
   return;
 }
 
 
-void daqb::daq_conf_default(){
+void Frontend::daq_conf_default(){
 
   return;
 }
 
-int daqb::perConnProcessRecvMesg(void* pconn, const std::string& str){
+int Frontend::perConnProcessRecvMesg(void* pconn, const std::string& str){
   static size_t s_n = 0;
   if(!m_isDataAccept){
     std::cout<< "msg is dropped"<<std::endl;
     return 0;
   }
-  
+
   daqb_packSP df(new DataPack);
 
   df->MakeDataPack(str);
@@ -106,12 +106,12 @@ int daqb::perConnProcessRecvMesg(void* pconn, const std::string& str){
   return 1;
 }
 
-std::string daqb::GetStatusString(){
+std::string Frontend::GetStatusString(){
   std::unique_lock<std::mutex> lk(m_mtx_st);
   return m_st_string;
 }
 
-daqb_packSP& daqb::Front(){
+daqb_packSP& Frontend::Front(){
   if(m_count_ring_write > m_count_ring_read) {
     uint64_t next_p_ring_read = m_count_ring_read % m_size_ring;
     m_hot_p_read = next_p_ring_read;
@@ -123,7 +123,7 @@ daqb_packSP& daqb::Front(){
   }
 }
 
-void daqb::PopFront(){
+void Frontend::PopFront(){
   if(m_count_ring_write > m_count_ring_read) {
     uint64_t next_p_ring_read = m_count_ring_read % m_size_ring;
     m_hot_p_read = next_p_ring_read;
@@ -133,16 +133,16 @@ void daqb::PopFront(){
   }
 }
 
-uint64_t daqb::Size(){
+uint64_t Frontend::Size(){
   return  m_count_ring_write - m_count_ring_read;
 }
 
-void daqb::ClearBuffer(){
+void Frontend::ClearBuffer(){
   m_count_ring_write = m_count_ring_read;
   m_vec_ring_ev.clear();
 }
 
-uint64_t daqb::AsyncWatchDog(){
+uint64_t Frontend::AsyncWatchDog(){
   std::chrono::system_clock::time_point m_tp_old;
   std::chrono::system_clock::time_point m_tp_run_begin;
 
@@ -194,9 +194,9 @@ uint64_t daqb::AsyncWatchDog(){
     double st_hz_input_period = st_n_ev_input_period / sec_period ;
 
     std::string st_string_new =
-      daqb::FormatString("L<%u> event(%d)/trigger(%d - %d)=Ev/Tr(%.4f) dEv/dTr(%.4f) tr_accu(%.2f hz) ev_accu(%.2f hz) tr_period(%.2f hz) ev_period(%.2f hz)",
-                          m_extension, st_n_ev_input_now, st_n_tg_ev_now, st_n_tg_ev_begin, st_input_vs_trigger_accu, st_input_vs_trigger_period,
-                          st_hz_tg_accu, st_hz_input_accu, st_hz_tg_period, st_hz_input_period
+      Frontend::FormatString("L<%u> event(%d)/trigger(%d - %d)=Ev/Tr(%.4f) dEv/dTr(%.4f) tr_accu(%.2f hz) ev_accu(%.2f hz) tr_period(%.2f hz) ev_period(%.2f hz)",
+                             m_extension, st_n_ev_input_now, st_n_tg_ev_now, st_n_tg_ev_begin, st_input_vs_trigger_accu, st_input_vs_trigger_period,
+                             st_hz_tg_accu, st_hz_input_accu, st_hz_tg_period, st_hz_input_period
         );
 
     {

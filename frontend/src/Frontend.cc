@@ -4,8 +4,8 @@
 #include <filesystem>
 #include <array>
 
-
 #include "rbcp.hh"
+
 
 uint8_t LeastNoneZeroOffset(const uint64_t& value){
   static const uint8_t bitmap[]=
@@ -24,9 +24,9 @@ uint64_t Frontend::String2Uint64(const std::string& str){
     FormatPrint(std::cerr, "ERROR<%s>: unknown value format.<%s>\n", __func__, str.c_str());
     throw;
   }else if(!mt[1].str().empty()){
-    v = std::stoull(mt[2].str(), 0, 16);	
+    v = std::stoull(mt[2].str(), 0, 16);
   }else if(!mt[3].str().empty()){
-    v = std::stoull(mt[4].str(), 0, 2);	
+    v = std::stoull(mt[4].str(), 0, 2);
   }else if(!mt[5].str().empty()){
     v = std::stoull(mt[5].str(), 0, 10);
   }else{
@@ -37,9 +37,14 @@ uint64_t Frontend::String2Uint64(const std::string& str){
 }
 
 
+Frontend::Frontend(const std::string& netip){
+  m_netip = netip;
+}
+
+
 Frontend::Frontend(const std::string& sensor_jsstr,
-		   const std::string& firmware_jsstr,
-		   const std::string& netip){
+                   const std::string& firmware_jsstr,
+                   const std::string& netip){
   m_jsdoc_firmware.Parse(firmware_jsstr.c_str());
   if(m_jsdoc_firmware.HasParseError()){
     fprintf(stderr, "JSON parse error: %s (at string positon %u)", rapidjson::GetParseError_En(m_jsdoc_firmware.GetParseError()), m_jsdoc_firmware.GetErrorOffset());
@@ -57,7 +62,7 @@ Frontend::Frontend(const std::string& sensor_jsstr,
 void  Frontend::WriteByte(uint64_t address, uint64_t value){
 
   DebugFormatPrint(std::cout, "WriteByte( address= %#016x ,  value= %#016x )\n", address, value);
-  
+
   std::cout<< address << "  " <<value<<std::endl;
   rbcp r(m_netip);
   std::string recvStr(100, 0);
@@ -177,10 +182,10 @@ void Frontend::SetSensorRegisters(const std::map<std::string, uint64_t>& mapRegV
     uint64_t value_ori = 0;
     if(mapRegReadable[address]){
       // value_ori = ReadByte(SensorRegAddr2GlobalRegAddr(address));
-        WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
-        WriteByte(0x0023,0);
-        WriteByte(0x0021,1);
-        value_ori = ReadByte(0x0024);
+      WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
+      WriteByte(0x0023,0);
+      WriteByte(0x0021,1);
+      value_ori = ReadByte(0x0024);
     }    
     // WriteByte(SensorRegAddr2GlobalRegAddr(address), (value & mask) | (value_ori & ~mask) );
     if(SensorRegAddr2GlobalRegAddr(address)==0b00110){
@@ -236,10 +241,10 @@ void Frontend::SetSensorRegister(const std::string& name, uint64_t value){
     uint64_t value_ori = 0;
     if(std::string(json_mode.GetString()).find('r')||std::string(json_mode.GetString()).find('R')){
       // value_ori = ReadByte(SensorRegAddr2GlobalRegAddr(address));
-        WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
-        WriteByte(0x0023,0);
-        WriteByte(0x0021,1);
-        value_ori = ReadByte(0x0024);
+      WriteByte(0x0022,SensorRegAddr2GlobalRegAddr(address));
+      WriteByte(0x0023,0);
+      WriteByte(0x0021,1);
+      value_ori = ReadByte(0x0024);
 
     }
     
@@ -438,7 +443,7 @@ void Frontend::FlushPixelMask(const std::set<std::pair<uint16_t, uint16_t>> &col
       uint8_t bitMask = 1<<bitPos;
       uint8_t bitValue = maskMat[xRow][yCol]; //get from config
 
-        //revert
+      //revert
       if(maskType == MaskType::UNMASK || maskType == MaskType::UNCAL){
         bitValue = ~(bool(bitValue));
       }
@@ -454,16 +459,16 @@ void Frontend::FlushPixelMask(const std::set<std::pair<uint16_t, uint16_t>> &col
       for(const auto & maskByte:  vecXColMaskByte){
 	// std::bitset<8> rawbit(maskByte);
 	// std::cout<< rawbit<<" ";
-              // SetSensorRegister("PIXELMASK_DATA", maskByte);
+        // SetSensorRegister("PIXELMASK_DATA", maskByte);
         WriteByte(0x0022,6);
         WriteByte(0x0023,maskByte);
         WriteByte(0x0021,0);
       }
       vecXColMaskByte_latest = vecXColMaskByte;
     }
-      WriteByte(0x0022,7);
-      WriteByte(0x0023,0);
-      WriteByte(0x0021,0);
+    WriteByte(0x0022,7);
+    WriteByte(0x0023,0);
+    WriteByte(0x0021,0);
     // SetSensorRegisters({{"LOADC_E", 0},{"LOADM_E", 0}});
     // std::cout<<"  col #"<<xCol<<std::endl;
   }
@@ -485,53 +490,56 @@ std::set<std::pair<uint16_t, uint16_t>> Frontend::ReadPixelMask_from_file(const 
 {
   std::fstream file_read_stream;
   std::filesystem::path p(filename);
-    if (p.extension() != ".txt")
+  if (p.extension() != ".txt")
+  {
+    std::cerr << "File: " << filename << " is not a txt file." << std::endl;
+    exit(0);
+  }
+  if (std::filesystem::exists(filename))
+  {
+    try
     {
-        std::cerr << "File: " << filename << " is not a txt file." << std::endl;
-        exit(0);
+      file_read_stream.open(filename, std::ios::in);
+      std::cout << "File: " << filename << " is open " << std::endl;
+      // Use the file_read_stream object for reading the file
+      // ...
     }
-    if (std::filesystem::exists(filename))
+    catch (const std::exception &e)
     {
-        try
-        {
-            file_read_stream.open(filename, std::ios::in);
-            std::cout << "File: " << filename << " is open " << std::endl;
-            // Use the file_read_stream object for reading the file
-            // ...
-        }
-        catch (const std::exception &e)
-        {
-            std::cout << "Error opening file: " << e.what() << std::endl;
-            exit(0);
-        }
+      std::cout << "Error opening file: " << e.what() << std::endl;
+      exit(0);
     }
-    else
-    {
-        std::cout << "File: " << filename << " don't exist." << std::endl;
-        exit(0);
-    }
+  }
+  else
+  {
+    std::cout << "File: " << filename << " don't exist." << std::endl;
+    exit(0);
+  }
   std::set<std::pair<uint16_t, uint16_t>> pixel_data_set;
   std::string line;
   while (std::getline(file_read_stream, line))
   {
-      std::istringstream iss(line);
-      uint16_t pixel_mask_row;
-      uint16_t pixel_mask_col;
-      // iss >> pixel_mask_row >> pixel_mask_col;
-      if (iss >> pixel_mask_row >> pixel_mask_col)
-      {
-        if(pixel_mask_row<0 || pixel_mask_row>1023 || pixel_mask_col<0 || pixel_mask_col>511){
-          std::cerr << "Invalid pixel mask coordinates: " << pixel_mask_row << ", " << pixel_mask_col << std::endl;
-          continue;
-        }
-        pixel_data_set.insert({pixel_mask_row, pixel_mask_col});
+    std::istringstream iss(line);
+    uint16_t pixel_mask_row;
+    uint16_t pixel_mask_col;
+    // iss >> pixel_mask_row >> pixel_mask_col;
+    if (iss >> pixel_mask_row >> pixel_mask_col)
+    {
+      if(pixel_mask_row<0 || pixel_mask_row>1023 || pixel_mask_col<0 || pixel_mask_col>511){
+        std::cerr << "Invalid pixel mask coordinates: " << pixel_mask_row << ", " << pixel_mask_col << std::endl;
+        continue;
       }
-      else
-      {
-        std::cerr << "Invalid line format: " << line << std::endl;
-      }
+      pixel_data_set.insert({pixel_mask_row, pixel_mask_col});
+    }
+    else
+    {
+      std::cerr << "Invalid line format: " << line << std::endl;
+    }
   }
   file_read_stream.close();
   std::cout << "File: " << filename << " is closed " << std::endl;
   return pixel_data_set;
 }
+
+//===============================================
+

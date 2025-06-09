@@ -25,7 +25,6 @@
 #include "linenoise.h"
 #include "getopt.h"
 
-#include "daqb.hh"
 #include "Frontend.hh"
 
 #include "TFile.h"
@@ -57,10 +56,10 @@ reg.json files are located in folder frontend/resource
 //help message for linenoise interface
 static  const std::string help_usage_linenoise
 (R"(
-keyword: 
-common: 
-config: 
-data-taking: 
+keyword:
+common:
+config:
+data-taking:
 
 example:
   0) quit command line
@@ -169,7 +168,6 @@ static sig_atomic_t g_watch_done = 0;
 
 std::future<uint64_t> fut_async_watch;
 std::future<uint64_t> fut_async_data;
-
 uint64_t AsyncWatchDog();
 uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, daqb *p_daqb);
 
@@ -283,9 +281,9 @@ int main(int argc, char **argv){
   
   std::FILE *fp_data=0;
   TFile *tf_data=0;
-  std::unique_ptr<daqb> daqbup;
+  std::unique_ptr<Frontend> daqbup;
   try{
-    daqbup.reset(new daqb("taichu_daqb", daqbHost_ipstr, daqbPortN));
+    daqbup.reset(new daqb(daqbHost_ipstr));
   }catch(...){
     daqbup.reset();
     exit(-1);
@@ -597,8 +595,8 @@ uint64_t AsyncWatchDog(){
   auto tp_old = tp_run_begin;
   size_t st_old_dataFrameN = 0;
   size_t st_old_dataFrameN_valid = 0;
-    
-  
+
+
   while(!g_watch_done){
     std::this_thread::sleep_for(std::chrono::seconds(1));
     auto tp_now = std::chrono::system_clock::now();
@@ -614,13 +612,13 @@ uint64_t AsyncWatchDog(){
     size_t st_dataFrameN_valid = ga_dataFrameN_valid;
     double st_hz_pack_accu_valid = st_dataFrameN_valid / sec_accu;
     double st_hz_pack_period_valid = (st_dataFrameN_valid-st_old_dataFrameN_valid) / sec_period;
-    
+
     tp_old = tp_now;
     st_old_dataFrameN= st_dataFrameN;
     st_old_dataFrameN_valid= st_dataFrameN_valid;
     std::fprintf(stdout,
-    		 "       pack_avg(%8.2f hz) pack_inst(%8.2f hz) pixel_avg(%8.2f hz) pixel_inst(%8.2f hz) pixel_total(%llu)\r",
-    		         st_hz_pack_accu,  st_hz_pack_period, st_hz_pack_accu_valid,  st_hz_pack_period_valid, st_dataFrameN_valid);
+                 "       pack_avg(%8.2f hz) pack_inst(%8.2f hz) pixel_avg(%8.2f hz) pixel_inst(%8.2f hz) pixel_total(%llu)\r",
+                 st_hz_pack_accu,  st_hz_pack_period, st_hz_pack_accu_valid,  st_hz_pack_period_valid, st_dataFrameN_valid);
     std::fflush(stdout);
   }
   std::fprintf(stdout, "\n\n");
