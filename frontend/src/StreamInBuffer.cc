@@ -1,4 +1,4 @@
-#include "TcpBuffer.hh"
+#include "StreamInBuffer.hh"
 
 #include <iostream>
 #include <chrono>

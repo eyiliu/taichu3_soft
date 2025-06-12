@@ -10,7 +10,7 @@
 #include <chrono>
 
 
-#include "TcpBuffer.hh"
+#include "StreamInBuffer.hh"
 
 class TcpConnection;
 
