@@ -55,5 +55,5 @@ private:
   bool m_isAlive{false};
   int m_sockfd{-1};
 
-  TcpBuffer m_tcpbuf;
+  StreamInBuffer m_tcpbuf;
 };

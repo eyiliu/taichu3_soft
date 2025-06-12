@@ -30,4 +30,4 @@ struct DataPack{
 };
 
 
-using daqb_packSP = std::shared_ptr<DataPack>;
+using DataPackSP = std::shared_ptr<DataPack>;

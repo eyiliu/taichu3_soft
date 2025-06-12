@@ -169,7 +169,7 @@ static sig_atomic_t g_watch_done = 0;
 std::future<uint64_t> fut_async_watch;
 std::future<uint64_t> fut_async_data;
 uint64_t AsyncWatchDog();
-uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, daqb *p_daqb);
+uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, Frontend *p_daqb);
 
 //-------------------main-------------------------
 int main(int argc, char **argv){
@@ -283,7 +283,7 @@ int main(int argc, char **argv){
   TFile *tf_data=0;
   std::unique_ptr<Frontend> daqbup;
   try{
-    daqbup.reset(new daqb(daqbHost_ipstr));
+    daqbup.reset(new Frontend(daqbHost_ipstr));
   }catch(...){
     daqbup.reset();
     exit(-1);
@@ -625,7 +625,7 @@ uint64_t AsyncWatchDog(){
   return 0;
 }
 
-uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, daqb *p_daqb){
+uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, Frontend *p_daqb){
   std::vector<uint16_t> xc;    // x column
   std::vector<uint16_t> yr;    // y row
   std::vector<uint8_t>  tsc;   // timestamp of chip

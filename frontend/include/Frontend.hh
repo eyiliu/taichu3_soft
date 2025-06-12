@@ -94,8 +94,8 @@ private:
 
 public:
   std::future<uint64_t> m_fut_async_watch;
-  std::vector<daqb_packSP> m_vec_ring_ev;
-  daqb_packSP m_ring_end;
+  std::vector<DataPackSP> m_vec_ring_ev;
+  DataPackSP m_ring_end;
 
   uint64_t m_size_ring{200000};
   std::atomic<uint64_t> m_count_ring_write;
@@ -137,17 +137,13 @@ public:
 
   int perConnProcessRecvMesg(void* pconn, const std::string& pak);
 
-  daqb_packSP& Front();
+  DataPackSP& Front();
   void PopFront();
   uint64_t Size();
-  void ClearBuffer();
-  void ResyncBuffer(){
-    m_tcpcon->TCPResyncBuffer();};
 
+  void ClearBuffer();
+  void ResyncBuffer();
   std::string GetStatusString();
   uint64_t AsyncWatchDog();
 
-
 };
-
-using daqb = Frontend;

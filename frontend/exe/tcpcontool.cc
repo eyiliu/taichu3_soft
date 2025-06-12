@@ -247,7 +247,7 @@ int main(int argc, char **argv){
 
   std::unique_ptr<Frontend> daqbup;
   try{
-    daqbup.reset(new daqb(daqbHost_ipstr));
+    daqbup.reset(new Frontend(daqbHost_ipstr));
   }catch(...){
     daqbup.reset();
     exit(-1);
@@ -386,7 +386,7 @@ uint64_t AsyncWatchDog(){
   return 0;
 }
 
-uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, daqb *p_daqb){
+uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, Frontend *p_daqb){
   std::vector<uint16_t> xc;    // x column
   std::vector<uint16_t> yr;    // y row
   std::vector<uint8_t>  tsc;   // timestamp of chip

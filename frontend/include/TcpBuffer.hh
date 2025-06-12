@@ -3,7 +3,7 @@
 #include<cstddef>
 #include<string>
 
-class TcpBuffer{
+class StreamInBuffer{
 public:
     void append(size_t length, const char *data);
 
@@ -22,3 +22,5 @@ private:
     size_t m_len{0};
     std::string m_buf;
 };
+
+

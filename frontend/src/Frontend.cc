@@ -537,13 +537,16 @@ void Frontend::daq_start_run(){
 
   //rbcp start
   m_isDataAccept= true;
-
   m_tcpcon =  TcpConnection::connectToServer(m_netip,  24, reinterpret_cast<FunProcessMessage>(&Frontend::perConnProcessRecvMesg), nullptr, this);
 
   if(!m_is_async_watching){
     m_fut_async_watch = std::async(std::launch::async, &Frontend::AsyncWatchDog, this);
   }
 
+
+  
+
+  
   return;
 }
 
@@ -576,7 +579,7 @@ int Frontend::perConnProcessRecvMesg(void* pconn, const std::string& str){
     return 0;
   }
 
-  daqb_packSP df(new DataPack);
+  DataPackSP df(new DataPack);
 
   df->MakeDataPack(str);
   s_n ++;
@@ -599,7 +602,7 @@ std::string Frontend::GetStatusString(){
   return m_st_string;
 }
 
-daqb_packSP& Frontend::Front(){
+DataPackSP& Frontend::Front(){
   if(m_count_ring_write > m_count_ring_read) {
     uint64_t next_p_ring_read = m_count_ring_read % m_size_ring;
     m_hot_p_read = next_p_ring_read;
@@ -621,14 +624,22 @@ void Frontend::PopFront(){
   }
 }
 
+
+
 uint64_t Frontend::Size(){
   return  m_count_ring_write - m_count_ring_read;
 }
+
+
+
 
 void Frontend::ClearBuffer(){
   m_count_ring_write = m_count_ring_read;
   m_vec_ring_ev.clear();
 }
+
+
+
 
 uint64_t Frontend::AsyncWatchDog(){
   std::chrono::system_clock::time_point m_tp_old;
@@ -700,4 +711,10 @@ uint64_t Frontend::AsyncWatchDog(){
     m_tp_old = tp_now;
   }
   return 0;
+}
+
+
+void Frontend::ResyncBuffer(){
+    m_tcpcon->TCPResyncBuffer();
+    return;
 }

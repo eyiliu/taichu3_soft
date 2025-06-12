@@ -4,16 +4,16 @@
 #include <chrono>
 #include <thread>
 
-void TcpBuffer::append(size_t length, const char *data){
+void StreamInBuffer::append(size_t length, const char *data){
     m_buf += std::string(data, length);
     updatelength(false);
 }
 
-bool TcpBuffer::havepacket() const{
+bool StreamInBuffer::havepacket() const{
     return m_buf.length() >= m_len  && m_len!=0;
 }
 
-bool TcpBuffer::havepacket_possible() const{
+bool StreamInBuffer::havepacket_possible() const{
     bool expectedPack = false;
     if(m_buf.length() >= m_len  && m_len!=0){
         expectedPack = true;
@@ -22,7 +22,7 @@ bool TcpBuffer::havepacket_possible() const{
 
 }
 
-void  TcpBuffer::resyncpacket(){
+void StreamInBuffer::resyncpacket(){
     m_len=1;
     std::cout<<"resyncpacket"<<std::endl;
     if(!havepacket_possible()){
@@ -58,7 +58,7 @@ void  TcpBuffer::resyncpacket(){
     return ;
 }
 
-std::string TcpBuffer::getpacket(){
+std::string StreamInBuffer::getpacket(){
     if (!havepacket()){
         std::cerr<<"havepacket return false\n";
         throw;
@@ -69,7 +69,7 @@ std::string TcpBuffer::getpacket(){
     return packet;
 }
 
-void TcpBuffer::dump(size_t maxN){
+void StreamInBuffer::dump(size_t maxN){
     size_t dumpN = m_buf.size()<maxN ? m_buf.size(): maxN;
     for(size_t n = 0; n< dumpN; n++){
         uint16_t num = (uint8_t)m_buf[n];
@@ -79,7 +79,7 @@ void TcpBuffer::dump(size_t maxN){
     }
 }
 
-void TcpBuffer::resyncpackethead(){ //resync to make sure buffer starts from 0b10101010
+void StreamInBuffer::resyncpackethead(){ //resync to make sure buffer starts from 0b10101010
     if(m_buf.length()==0) return;
     if(static_cast<unsigned char>(m_buf[0])!=0b10101010){ // match package header=0xaa
         std::string::size_type pos = m_buf.find(0b10101010);
@@ -94,7 +94,7 @@ void TcpBuffer::resyncpackethead(){ //resync to make sure buffer starts from 0b1
     }
 }
 
-void TcpBuffer::updatelength(bool force){
+void StreamInBuffer::updatelength(bool force){
     // std::cout<< "m_len udpate"<<std::endl;
     if (force || m_len == 0) {
         m_len = 0;
