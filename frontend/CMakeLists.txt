@@ -11,7 +11,7 @@ target_include_directories(frontend
 
 set(THE_PUBLIC_HEADER
   include/Frontend.hh
-  include/TcpBuffer.hh
+  include/StreamInBuffer.hh
   include/TcpConnection.hh
   include/rbcp.hh
 )

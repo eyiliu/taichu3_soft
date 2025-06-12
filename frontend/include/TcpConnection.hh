@@ -46,8 +46,7 @@ public:
 
   static std::string binToHexString(const char *bin, int len);
 
-  void TCPResyncBuffer(){
-    m_tcpbuf.resyncpacket();};
+  void TCPResyncBuffer();
 
 private:
   std::future<uint64_t> m_fut;

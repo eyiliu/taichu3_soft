@@ -35,7 +35,7 @@
   do { if (DEBUG_PRINT) std::fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
 
 //help message for command
-static const std::string help_usage 
+static const std::string help_usage
 (R"(
 Usage:
 --help                  : print usage information, and then quit
@@ -346,7 +346,7 @@ int main(int argc, char **argv){
       daqbup->daq_reset();
       g_data_done = 1;
       if(fut_async_data.valid()){
-        fut_async_data.get();	
+        fut_async_data.get();
       }
 
       g_watch_done = 1;
@@ -692,7 +692,7 @@ uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, Frontend *p_daqb){
 //    }
   }
 
-  
+
   if(p_fd){std::fclose(p_fd); p_fd = 0;}
   if(p_rootfd){
     p_ttree->Write();
