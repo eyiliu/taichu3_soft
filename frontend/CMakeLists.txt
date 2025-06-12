@@ -10,7 +10,6 @@ target_include_directories(frontend
 )
 
 set(THE_PUBLIC_HEADER
-  include/daqb.hh
   include/Frontend.hh
   include/TcpBuffer.hh
   include/TcpConnection.hh

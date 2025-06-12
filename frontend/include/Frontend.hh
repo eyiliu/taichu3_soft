@@ -25,6 +25,8 @@
 #include "mysystem.hh"
 #include "myrapidjson.h"
 
+#include "Utility.hh"
+
 class Frontend{
 public:
   enum MaskType {MASK, CAL, UNMASK, UNCAL};
@@ -60,42 +62,8 @@ private:
   uint64_t ReadByte(uint64_t address);
 
 public:
-  static std::string LoadFileToString(const std::string& p);
-  static uint64_t String2Uint64(const std::string& str);
 
 
-  template<typename ... Args>
-  static std::string FormatString( const std::string& format, Args ... args ){
-    std::size_t size = snprintf( nullptr, 0, format.c_str(), args ... ) + 1;
-    std::unique_ptr<char[]> buf( new char[ size ] );
-    std::snprintf( buf.get(), size, format.c_str(), args ... );
-    return std::string( buf.get(), buf.get() + size - 1 );
-  }
-
-  
-  template<typename ... Args>
-  static std::size_t FormatPrint(std::ostream &os, const std::string& format, Args ... args ){
-    std::size_t size = snprintf( nullptr, 0, format.c_str(), args ... ) + 1;
-    std::unique_ptr<char[]> buf( new char[ size ] ); 
-    std::snprintf( buf.get(), size, format.c_str(), args ... );
-    std::string formated_string( buf.get(), buf.get() + size - 1 );
-    os<<formated_string<<std::flush;
-    return formated_string.size();
-  }
-
-
-  
-  template<typename ... Args>
-  static std::size_t DebugFormatPrint(std::ostream &os, const std::string& format, Args ... args ){  
-    // return 0;
-    std::size_t size = snprintf( nullptr, 0, format.c_str(), args ... ) + 1;
-    std::unique_ptr<char[]> buf( new char[ size ] ); 
-    std::snprintf( buf.get(), size, format.c_str(), args ... );
-    std::string formated_string( buf.get(), buf.get() + size - 1 );
-    os<<formated_string<<std::flush;
-    return formated_string.size();
-  }
-  
   template<typename T>
   static const std::string Stringify(const T& o){
     rapidjson::StringBuffer sb;
@@ -119,7 +87,6 @@ private:
 
   rapidjson::Document m_jsdoc_sensor;
   rapidjson::Document m_jsdoc_firmware;
-
 
   /////////////////////////////////////////////////////
 

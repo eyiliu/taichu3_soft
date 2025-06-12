@@ -194,7 +194,7 @@ uint64_t Frontend::AsyncWatchDog(){
     double st_hz_input_period = st_n_ev_input_period / sec_period ;
 
     std::string st_string_new =
-      Frontend::FormatString("L<%u> event(%d)/trigger(%d - %d)=Ev/Tr(%.4f) dEv/dTr(%.4f) tr_accu(%.2f hz) ev_accu(%.2f hz) tr_period(%.2f hz) ev_period(%.2f hz)",
+      FormatString("L<%u> event(%d)/trigger(%d - %d)=Ev/Tr(%.4f) dEv/dTr(%.4f) tr_accu(%.2f hz) ev_accu(%.2f hz) tr_period(%.2f hz) ev_period(%.2f hz)",
                              m_extension, st_n_ev_input_now, st_n_tg_ev_now, st_n_tg_ev_begin, st_input_vs_trigger_accu, st_input_vs_trigger_period,
                              st_hz_tg_accu, st_hz_input_accu, st_hz_tg_period, st_hz_input_period
         );

@@ -296,8 +296,8 @@ int main(int argc, char **argv){
   }
   std::string reglist_path_sensor = srfile_opt;
   std::string reglist_path_firmware = frfile_opt;  
-  std::string reglist_jsstr_sensor   = Frontend::LoadFileToString(reglist_path_sensor);
-  std::string reglist_jsstr_firmware = Frontend::LoadFileToString(reglist_path_firmware);
+  std::string reglist_jsstr_sensor   = LoadFileToString(reglist_path_sensor);
+  std::string reglist_jsstr_firmware = LoadFileToString(reglist_path_firmware);
   Frontend fw(reglist_jsstr_sensor, reglist_jsstr_firmware, daqbHost_ipstr);
 
   //-------------------linenoise-------------------------
@@ -483,7 +483,7 @@ int main(int argc, char **argv){
       std::cmatch mt;
       std::regex_match(result, mt, std::regex("\\s*(sensor)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*"));
       std::string  name  = mt[3].str();
-      uint64_t value = Frontend::String2Uint64(mt[4].str());
+      uint64_t value = String2Uint64(mt[4].str());
       fprintf(stderr, "%s = %u, %#x\n", name.c_str(), value, value);
 
       fw.SetSensorRegister(name, value);
@@ -533,7 +533,7 @@ int main(int argc, char **argv){
       std::cmatch mt;
       std::regex_match(result, mt, std::regex("\\s*(firmware)\\s+(set)\\s+(\\w+)\\s+(\\w+)\\s*"));
       std::string  name  = mt[3].str();
-      uint64_t value = Frontend::String2Uint64(mt[4].str());
+      uint64_t value = String2Uint64(mt[4].str());
       fprintf(stderr, "%s = %u, %#x\n", name.c_str(), value, value);
       fw.SetFirmwareRegister(name, value);
     }
