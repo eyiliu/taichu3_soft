@@ -137,9 +137,18 @@ TelEventSP Telescope::ReadEvent(){
   }
 
 
-  //TODO DataPack to TeleEvent;
   std::vector<TelEventSP> sub_events;
-
+  for(const auto &dp: sub_datapacks){
+    uint16_t tid = dp->tid;
+    uint16_t daqid = dp->daqid;
+    TelEventSP subev = std::make_shared<taichu::TelEvent>(0, m_st_n_ev, daqid, tid);
+    const auto &vecPixel = dp->vecpixel;
+    for(const auto & pix: vecPixel){
+      subev->MRs.emplace_back(pix.xcol, pix.yrow, daqid, tid);
+    }
+    subev->MHs = TelMeasHit::clustering_UVDCus(subev->MRs);
+    sub_events.push_back(subev);
+  }
 
   uint32_t runN = 0;
   uint32_t eventN =  m_st_n_ev;
@@ -147,7 +156,6 @@ TelEventSP Telescope::ReadEvent(){
   uint32_t clockN = trigger_n;
   auto telev_sync = std::make_shared<taichu::TelEvent>(runN, eventN, deviceN, clockN);
   for(auto &subev: sub_events){
-
     telev_sync->MRs.insert(telev_sync->MRs.end(), subev->MRs.begin(),subev->MRs.end());
     telev_sync->MHs.insert(telev_sync->MHs.end(), subev->MHs.begin(),subev->MHs.end());
   }
