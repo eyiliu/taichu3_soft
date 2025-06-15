@@ -101,9 +101,7 @@ Telescope::~Telescope(){
 TelEventSP Telescope::ReadEvent(){
   if (!m_is_running) return nullptr;
 
-  return nullptr;
-  //TODO 
-  /*
+ 
   uint32_t trigger_n = -1;
   for(auto &l: m_vec_layer){
     if( l->Size() == 0){
@@ -111,31 +109,37 @@ TelEventSP Telescope::ReadEvent(){
       return nullptr;
     }
     else{
-      uint32_t trigger_n_ev = l->Front()->clkN();
+      uint32_t trigger_n_ev = l->Front()->tid;
       if(trigger_n_ev< trigger_n)
         trigger_n = trigger_n_ev;
     }
   }
 
-  std::vector<TelEventSP> sub_events;
+  // std::vector<TelEventSP> sub_events;
+  std::vector<DataPackSP> sub_datapacks;
   for(auto &l: m_vec_layer){
     auto &ev_front = l->Front();
-    if(ev_front->clkN() == trigger_n){
-      sub_events.push_back(ev_front);
+    if(ev_front->tid == trigger_n){
+      sub_datapacks.push_back(ev_front);
       l->PopFront();
     }
   }
 
-  if(sub_events.size() < m_vec_layer.size() ){
+  if(sub_datapacks.size() < m_vec_layer.size() ){
     std::cout<< "dropped assambed event with subevent less than requried "<< m_vec_layer.size() <<" sub events" <<std::endl;
     std::string dev_numbers;
-    for(auto & ev : sub_events){
-      dev_numbers += std::to_string(ev->detN());
+    for(auto & ev : sub_datapacks){
+      dev_numbers += std::to_string(ev->daqid);
       dev_numbers +=" ";
     }
     std::cout<< "  TID#"<<trigger_n<<" subevent= "<< dev_numbers <<std::endl;
     return nullptr;
   }
+
+
+  //TODO DataPack to TeleEvent;
+  std::vector<TelEventSP> sub_events;
+
 
   uint32_t runN = 0;
   uint32_t eventN =  m_st_n_ev;
@@ -143,6 +147,7 @@ TelEventSP Telescope::ReadEvent(){
   uint32_t clockN = trigger_n;
   auto telev_sync = std::make_shared<taichu::TelEvent>(runN, eventN, deviceN, clockN);
   for(auto &subev: sub_events){
+
     telev_sync->MRs.insert(telev_sync->MRs.end(), subev->MRs.begin(),subev->MRs.end());
     telev_sync->MHs.insert(telev_sync->MHs.end(), subev->MHs.begin(),subev->MHs.end());
   }
@@ -153,7 +158,7 @@ TelEventSP Telescope::ReadEvent(){
   }
   m_st_n_ev ++;
   return telev_sync;
-  */
+
 
 }
 

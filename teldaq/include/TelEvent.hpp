@@ -6,6 +6,7 @@
 #include <algorithm>
 namespace taichu{
 
+
   struct TelMeasRaw{
     union {
       uint64_t index;
@@ -51,10 +52,10 @@ namespace taichu{
       };
 
     TelMeasHit(std::vector<TelMeasRaw> mrs,
-               double pitchU = 0.02924,
-               double pitchV = 0.02688,
-               double offsetU = -0.02924 * (1024/2. - 0.5),
-               double offsetV = -0.02688 * (512/2. - 0.5))
+               double pitchU = 0.025,
+               double pitchV = 0.025,
+               double offsetU = -0.025 * (1024/2. - 0.5),
+               double offsetV = -0.025 * (512/2. - 0.5))
       :MRs(mrs){
       if(MRs.empty()){
         return;
@@ -84,10 +85,10 @@ namespace taichu{
 
     static std::vector<std::shared_ptr<TelMeasHit>>
     clustering_UVDCus(const std::vector<TelMeasRaw>& measRaws,
-                      double pitchU = 0.02924,
-                      double pitchV = 0.02688,
-                      double offsetU = -0.02924 * (1024/2 - 0.5),
-                      double offsetV = -0.02688 * (512/2 - 0.5)){
+                      double pitchU = 0.025,
+                      double pitchV = 0.025,
+                      double offsetU = -0.025 * (1024/2 - 0.5),
+                      double offsetV = -0.025 * (512/2 - 0.5)){
       std::vector<std::shared_ptr<TelMeasHit>> measHits;
 
       auto hit_col_remain= measRaws;
