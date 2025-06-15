@@ -26,7 +26,33 @@
   do { if (INFO_PRINT) std::fprintf(stdout, fmt, ##__VA_ARGS__); } while (0)
 
 
+
+
+static const std::string builtin_firmware_reg_str =
+#include "firmware_reg.json.hh"
+  ;
+
+
+static const std::string builtin_taichupix3_reg_str =
+#include "taichupix3_reg.json.hh"
+  ;
+
+
+
+
 Frontend::Frontend(const std::string& netip){
+  m_jsdoc_firmware.Parse(builtin_firmware_reg_str.c_str());
+  if(m_jsdoc_firmware.HasParseError()){
+    fprintf(stderr, "JSON parse error: %s (at string positon %u)", rapidjson::GetParseError_En(m_jsdoc_firmware.GetParseError()), m_jsdoc_firmware.GetErrorOffset());
+    throw;
+  }
+
+  m_jsdoc_sensor.Parse(builtin_taichupix3_reg_str.c_str());
+  if(m_jsdoc_sensor.HasParseError()){
+    fprintf(stderr, "JSON parse error: %s (at string positon %u)", rapidjson::GetParseError_En(m_jsdoc_sensor.GetParseError()), m_jsdoc_sensor.GetErrorOffset());
+    throw;
+  }
+
   m_netip = netip;
 }
 
@@ -34,13 +60,13 @@ Frontend::Frontend(const std::string& netip){
 Frontend::Frontend(const std::string& sensor_jsstr,
                    const std::string& firmware_jsstr,
                    const std::string& netip){
-  m_jsdoc_firmware.Parse(firmware_jsstr.c_str());
+  m_jsdoc_firmware.Parse(firmware_jsstr.empty()? builtin_firmware_reg_str.c_str():firmware_jsstr.c_str());
   if(m_jsdoc_firmware.HasParseError()){
     fprintf(stderr, "JSON parse error: %s (at string positon %u)", rapidjson::GetParseError_En(m_jsdoc_firmware.GetParseError()), m_jsdoc_firmware.GetErrorOffset());
     throw;
   }
 
-  m_jsdoc_sensor.Parse(sensor_jsstr.c_str());
+  m_jsdoc_sensor.Parse(sensor_jsstr.empty()? builtin_taichupix3_reg_str.c_str():sensor_jsstr.c_str());
   if(m_jsdoc_sensor.HasParseError()){
     fprintf(stderr, "JSON parse error: %s (at string positon %u)", rapidjson::GetParseError_En(m_jsdoc_sensor.GetParseError()), m_jsdoc_sensor.GetErrorOffset());
     throw;

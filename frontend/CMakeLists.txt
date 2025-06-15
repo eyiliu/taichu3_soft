@@ -1,6 +1,9 @@
+add_subdirectory(resource)
+
+
 aux_source_directory(src THE_SRC_FILES)
 add_library(frontend SHARED ${THE_SRC_FILES} )
-target_link_libraries (frontend PRIVATE mycommon stdc++fs)
+target_link_libraries (frontend PRIVATE sensor-firmware-builtinJSON-headers mycommon stdc++fs )
 target_include_directories(frontend
   PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -27,5 +30,5 @@ install(TARGETS frontend
   RESOURCE      DESTINATION resource COMPONENT runtime
 )
 
-
 add_subdirectory(exe)
+
