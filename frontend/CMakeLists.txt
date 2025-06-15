@@ -26,7 +26,7 @@ install(TARGETS frontend
   RUNTIME       DESTINATION bin      COMPONENT runtime
   LIBRARY       DESTINATION lib      COMPONENT runtime
   ARCHIVE       DESTINATION lib      COMPONENT devel
-  PUBLIC_HEADER DESTINATION include  COMPONENT devel
+  # PUBLIC_HEADER DESTINATION include  COMPONENT devel
   RESOURCE      DESTINATION resource COMPONENT runtime
 )
 

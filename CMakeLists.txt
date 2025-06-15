@@ -22,4 +22,4 @@ add_subdirectory(common)
 add_subdirectory(frontend)
 add_subdirectory(teldaq)
 
-# add_subdirectory(eudaq)
+add_subdirectory(eudaq)

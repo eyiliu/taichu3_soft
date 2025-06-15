@@ -5,10 +5,10 @@
 #include <cstdio>
 
 #include "myrapidjson.h"
-#include "Frontend.hh"
+
 #include "TelEvent.hpp"
 
-
+class Frontend;
 
 namespace taichu{
   using TelEventSP = std::shared_ptr<TelEvent>;

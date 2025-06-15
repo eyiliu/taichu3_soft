@@ -2,6 +2,7 @@
 #include <iostream>
 #include <thread>
 #include "Telescope.hh"
+#include "Frontend.hh"
 
 using namespace taichu;
 
