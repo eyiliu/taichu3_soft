@@ -278,7 +278,7 @@ int main(int argc, char **argv){
   std::filesystem::path data_folder_path_abs = std::filesystem::absolute(data_folder_path);
   check_and_create_folder(data_folder_path_abs);
   std::fprintf(stdout, "\n\n\ndata dir:   %s\n", data_folder_path_abs.c_str());
-  
+
   std::FILE *fp_data=0;
   TFile *tf_data=0;
   std::unique_ptr<Frontend> daqbup;
@@ -335,14 +335,6 @@ int main(int argc, char **argv){
     //basic command: reset, config, start, stop
     else if ( std::regex_match(result, std::regex("\\s*(reset)\\s*")) ){ //reset
       printf("reset\n");
-      //register
-      fw.SetFirmwareRegister("upload_data", 0);
-      fw.SetFirmwareRegister("chip_reset", 0);
-      fw.SetFirmwareRegister("chip_reset", 1);
-      fw.SetFirmwareRegister("global_reset", 1);
-      fw.SetFirmwareRegister("all_buffer_reset", 1);
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      //tcp
       daqbup->daq_reset();
       g_data_done = 1;
       if(fut_async_data.valid()){
@@ -356,103 +348,18 @@ int main(int argc, char **argv){
     }
     else if ( std::regex_match(result, std::regex("\\s*(config)\\s*")) ){ //config
       printf("config\n");
-
-      fw.SetFirmwareRegister("upload_data", 0);
-      fw.SetFirmwareRegister("chip_reset", 0);
-      fw.SetFirmwareRegister("chip_reset", 1);
-      fw.SetFirmwareRegister("global_reset", 1);
-      fw.SetFirmwareRegister("all_buffer_reset", 1);
-      fw.SetFirmwareRegister("set_daq_id", 2);
-      fw.SetFirmwareRegister("global_work_mode", 1); 
-      // need to set daq id and trigger mode
-
-      fw.SetSensorRegister("RCKI", 1);
-      // BSEL 0 ISEL1 0 ISEL0 0 EXCKS 0 DSEL 0 CKESEL 0 RCKI (1) RCKO 0
-
-      fw.SetSensorRegisters({{"TRIGN",1}, {"CPRN",1}, {"DOFREQ", 0b01} });
-      // TRIGN (1) CPRN (1) DOFREQ 01 SMOD 0 CTM 0 SPI_D 0 TMOD 0
-      // 11010000
-
-      fw.SetSensorRegisters({{"REG_BGR_TC", 0b01},{"C_MASK_EN", 0}});
-      // REG_BGR_TC 01 BPLDO 0 LDO_REG1 0 LDO_REG0 0 C_MASK_EN 0 ENTP 0 EN10B 0
-      // 01000000
-
-      fw.SetSensorRegisters({{"PSET", 1}, {"OISEL",0}, {"OPSEL", 0}});
-      // RESERVED13N7_4 0000 RESERVED13N3 0 PSET (1) OISEL 0(x) OPSEL 0(x)
-
-      // fw.SetFirmwareRegister("SER_DELAY", 0x04);
-      fw.SetFirmwareRegister("load_m", 0xff);
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
-
-      fw.FlushPixelMask({}, Frontend::MaskType::MASK);
-      fw.FlushPixelMask({}, Frontend::MaskType::UNCAL);
-
-      // voltage
-      // fw.SetBoardDAC(1, 1.6);
-      // fw.SetBoardDAC(0, 0.47);
-      // fw.SetBoardDAC(2, 1.6512);
-
-      fw.SetSensorRegisters({{"REG_CDAC0_2_0", 0b010}, {"ENIBG", 0}, {"REG_BGR_OFFSET", 0b010}, {"ENBGR", 1}});
-      //  REG_CDAC0_2_0 (010) ENIBG 0 REG_BGR_OFFSET (010) ENBGR (1)
-
-      fw.SetSensorRegisters({{"REG_CDAC1_0", 0}, {"EN_CDAC_T0", 1}, {"EN_CDAC0", 1}, {"REG_CDAC0_7_3", 0b00000}});
-      //  REG_CDAC1_0 0  EN_CDAC_T0 1 EN_CDAC0 1 REG_CDAC0_7_3 00000
-
-      fw.SetSensorRegisters({{"EN_CDAC1", 1}, {"REG_CDAC1_7_1", 0b0010000}}); ////TODO::  ITHR  32 + prefix 1
-      //  EN_CDAC1 1 REG_CDAC1_7_1 (0010000)
-
-      fw.SetSensorRegisters({{"REG_CDAC2_6_0", 0b0000101}, {"EN_CDAC_T1", 1}});
-      //  REG_CDAC2_6_0 (0000101)  EN_CDAC_T1 1
-
-      fw.SetSensorRegisters({{"REG_VDAC0_4_0", 0b00000}, {"EN_CDAC_T2", 1},  {"EN_CDAC2", 1}, {"REG_CDAC2_7", 0}});
-      //  REG_VDAC0_4_0 00000  EN_CDAC_T2 1  EN_CDAC2 1 REG_CDAC2_7 0
-
-      fw.SetSensorRegisters({{"REG_VDAC0_C2_0", 0b000}, {"REG_VDAC0_9_5", 0b00000}});
-      //  REG_VDAC0_C2_0 000 REG_VDAC0_9_5 00000
-
-      fw.SetSensorRegisters({{"REG_VDAC1_2_0", 0b110}, {"EN_VDAC0", 1}, {"REG_VDAC0_T", 0b11}, {"REG_VDAC0_C4_3", 0b10}});
-      //  REG_VDAC1_2_0 (110) EN_VDAC0 1 REG_VDAC0_T 11 REG_VDAC0_C4_3 10
-
-      fw.SetSensorRegisters({{"REG_VDAC1_C0", 0},{"REG_VDAC1_9_3", 0b0000000}});
-      //  REG_VDAC1_C0 0 REG_VDAC1_9_3 0000000
-
-      fw.SetSensorRegisters({{"REG_VDAC2_0",1},{"EN_VDAC1", 1},{"REG_VDAC1_T",0b11},{"REG_VDAC1_C4_1",0b1000}});
-      //  REG_VDAC2_0 (1) EN_VDAC1 1  REG_VDAC1_T 11 REG_VDAC1_C4_1 1000
-
-      fw.SetSensorRegisters({{"REG_VDAC2_8_1", 0b10010101}});
-      //  REG_VDAC2_8_1 10010101
-
-      fw.SetSensorRegisters({{"REG_VDAC2_T", 0b11}, {"REG_VDAC2_C", 0b10000}, {"REG_VDAC2_9", 0}});
-      //  REG_VDAC2_T 11 REG_VDAC2_C 10000  REG_VDAC2_9 0
-
-      fw.SetSensorRegisters({{"REG_VDAC3_6_0", 0b1000100}, {"EN_VDAC2", 1}});
-      //  REG_VDAC3_6_0 1000100  EN_VDAC2 1
-
-      fw.SetSensorRegisters({{"REG_VDAC3_C", 0b10000},  {"REG_VDAC3_9_7", 0b010}});
-      //  REG_VDAC3_C 10000  REG_VDAC3_9_7 010
-
-      fw.SetSensorRegisters({{"REG_MUXO", 0b01}, {"REG_MUX", 0b010}, {"EN_VDAC3", 1}, {"REG_VDAC3_T", 0b11}});
-      //  REG_MUXO 01 REG_MUX 010  EN_VDAC3 1 REG_VDAC2_T 11
-
-      fw.SetSensorRegisters({{"REG_CDAC_8NA4_0", 0b00010}, {"EN_CDAC_8NA", 0}, {"REG_CDAC_8NA_BGR", 1}, {"REG_SEL_CDAC_8NA", 0}});
-      //  REG_CDAC_8NA4_0 (00010)  EN_CDAC_8NA (0)   REG_CDAC_8NA_BGR 1   REG_SEL_CDAC_8NA (0)
-
-      fw.SetSensorRegisters({{"REG_CDAC_8NA_TRIM", 0b00}, {"REG_CDAC_8NA5", 0}});
-      //  00000 REG_CDAC_8NA_TRIM 00 REG_CDAC_8NA5 0
+      fw.daq_conf_default():
     }
     else if ( std::regex_match(result, std::regex("\\s*(start)\\s*")) ){ //start data-taking
       printf("start\n");
-      //register 
-      fw.SetFirmwareRegister("upload_data",1);
-      //tcp 
       std::string nowstr = getnowstring();
       std::string basename_datafile = std::string("data_")+nowstr;
       std::filesystem::path file_rawdata_path = data_folder_path_abs/(basename_datafile+std::string(".dat"));
       std::filesystem::path file_rootdata_path = data_folder_path_abs/(basename_datafile+std::string(".root"));
       if(do_rootfile){
-	tf_data = create_and_open_rootfile(file_rootdata_path);
+        tf_data = create_and_open_rootfile(file_rootdata_path);
       }else{
-	fp_data = create_and_open_file(file_rawdata_path);
+        fp_data = create_and_open_file(file_rawdata_path);
       }
       fut_async_watch = std::async(std::launch::async, &AsyncWatchDog);
       fut_async_data = std::async(std::launch::async, &AsyncDataSave, fp_data, tf_data, daqbup.get());
@@ -460,20 +367,11 @@ int main(int argc, char **argv){
     }
     else if ( std::regex_match(result, std::regex("\\s*(stop)\\s*")) ){
       printf("stop\n");
-      //register
-      fw.SetFirmwareRegister("upload_data", 0);
-      fw.SetFirmwareRegister("chip_reset", 0);
-      fw.SetFirmwareRegister("chip_reset", 1);
-      fw.SetFirmwareRegister("global_reset", 1);
-      fw.SetFirmwareRegister("all_buffer_reset", 1);
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      //tcp
       daqbup->daq_stop_run();
       g_data_done = 1;
       if(fut_async_data.valid())
         fut_async_data.get();
     }
-
     //---sensor registers---
     else if(std::regex_match(result, std::regex("\\s*(full)\\s*"))){ //open full window
       fw.FlushPixelMask({}, Frontend::MaskType::MASK);
@@ -687,9 +585,6 @@ uint64_t AsyncDataSave(std::FILE *p_fd, TFile *p_rootfd, Frontend *p_daqb){
       }
       if(p_ttree){p_ttree->Fill();}
     }
-//    else{ //Resync is done in updatelength 
-//      p_daqb->ResyncBuffer();
-//    }
   }
 
 
