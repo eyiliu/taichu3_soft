@@ -2,9 +2,10 @@ include(FetchContent)
 include(ExternalProject)
 FetchContent_Declare(
   external_eudaq
-  GIT_REPOSITORY https://github.com/eyiliu/eudaq.git
+  # GIT_REPOSITORY https://github.com/eyiliu/eudaq.git
+  GIT_REPOSITORY https://gitcode.com/eyiliu/eudaq.git
   GIT_TAG 4996e0950a1fa51fc40340ef9240cd3602c48177
-  FETCHCONTENT_UPDATES_DISCONNECTED ON
+  # FETCHCONTENT_UPDATES_DISCONNECTED ON
 )
 FetchContent_Populate(external_eudaq)
 

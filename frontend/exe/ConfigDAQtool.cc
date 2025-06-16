@@ -348,7 +348,7 @@ int main(int argc, char **argv){
     }
     else if ( std::regex_match(result, std::regex("\\s*(config)\\s*")) ){ //config
       printf("config\n");
-      fw.daq_conf_default():
+      fw.daq_conf_default();
     }
     else if ( std::regex_match(result, std::regex("\\s*(start)\\s*")) ){ //start data-taking
       printf("start\n");
