@@ -19,7 +19,7 @@ uint8_t LeastNoneZeroOffset(const uint64_t& value){
 uint64_t String2Uint64(const std::string& str){
   uint64_t v = -1;
   std::cmatch mt;
-  bool matched = std::regex_match(str.c_str(), mt, std::regex("\\s*(?:(0[Xx])+([0-9a-fA-F]+))|(?:(0[Bb])+([0-9]+))|(?:([0-9]+))\\s*"));
+  bool matched = std::regex_match(str.c_str(), mt, std::regex("\\s*(?:(0[Xx])+([0-9a-fA-F]+))|(?:(0[Bb])+([0-1]+))|(?:([0-9]+))\\s*"));
   if(!matched){
     FormatPrint(std::cerr, "ERROR<%s>: unknown value format.<%s>\n", __func__, str.c_str());
     throw;
@@ -77,3 +77,12 @@ std::string binToHexString(const char *bin, int len){
   return s;
 }
 
+
+std::string TimeNowString(const std::string& format){
+  std::time_t time_now = std::time(nullptr);
+  std::string str_buffer(100, char(0));
+  size_t n = std::strftime(&str_buffer[0], sizeof(str_buffer.size()),
+                           format.c_str(), std::localtime(&time_now));
+  str_buffer.resize(n?(n-1):0);
+  return str_buffer;
+}

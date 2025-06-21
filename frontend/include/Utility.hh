@@ -11,6 +11,8 @@ uint64_t String2Uint64(const std::string& str);
 
 uint8_t LeastNoneZeroOffset(const uint64_t& value);
 
+std::string TimeNowString(const std::string& format);
+
 
 template<typename ... Args>
 static std::string FormatString( const std::string& format, Args ... args ){
