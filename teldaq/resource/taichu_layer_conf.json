@@ -1,0 +1,149 @@
+{    
+    "layers":[
+        {
+            "name":"red",
+            "data_link":{
+                "protocol":"tcp",
+                "version": 1,
+                "description":"Taichu plane TCP raw reader",
+                "options":{
+                    "ip":"192.168.10.170"
+                }
+		
+            },
+	    "ctrl_link":{
+                "protocol":"rbcp",
+                "version": 1,
+                "description":"rbcp control",
+                "options":{
+                    "ip":"192.168.10.170"
+                }	
+            }
+	},
+
+        {
+            "name":"orange",
+            "data_link":{
+                "protocol":"tcp",
+                "version": 1,
+                "description":"Taichu plane TCP raw reader",
+                "options":{
+                    "ip":"192.168.10.171"
+                }
+            },
+	    "ctrl_link":{
+                "protocol":"rbcp",
+                "version": 1,
+                "description":"rbcp control",
+                "options":{
+                    "ip":"192.168.10.171"
+                }	
+            }	    
+        },
+
+        {
+            "name":"yellow",
+            "data_link":{
+                "protocol":"tcp",
+                "version": 1,
+                "description":"Taichu plane TCP raw reader",
+                "options":{
+                    "ip":"192.168.10.172"
+                }
+            },
+	    "ctrl_link":{
+                "protocol":"rbcp",
+                "version": 1,
+                "description":"rbcp control",
+                "options":{
+                    "ip":"192.168.10.172"
+                }	
+            }
+
+        },
+
+        {
+            "name":"green",
+            "data_link":{
+                "protocol":"tcp",
+                "version": 1,
+                "description":"Taichu plane TCP raw reader",
+                "options":{
+                    "ip":"192.168.10.173"
+                }
+            },
+	    "ctrl_link":{
+                "protocol":"rbcp",
+                "version": 1,
+                "description":"rbcp control",
+                "options":{
+                    "ip":"192.168.10.173"
+                }	
+            }
+
+        },
+
+        {
+            "name":"cyan",
+            "data_link":{
+                "protocol":"tcp",
+                "version": 1,
+                "description":"Taichu plane TCP raw reader",
+                "options":{
+                    "ip":"192.168.10.174"
+                }
+            },
+	    "ctrl_link":{
+                "protocol":"rbcp",
+                "version": 1,
+                "description":"rbcp control",
+                "options":{
+                    "ip":"192.168.10.174"
+                }	
+            }
+
+        },
+        
+        {
+            "name":"blue",
+            "data_link":{
+                "protocol":"tcp",
+                "version": 1,
+                "description":"Taichu plane TCP raw reader",
+                "options":{
+                    "ip":"192.168.10.175"
+                }
+            },
+	    "ctrl_link":{
+                "protocol":"rbcp",
+                "version": 1,
+                "description":"rbcp control",
+                "options":{
+                    "ip":"192.168.10.175"
+                }	
+            }
+
+        },
+	
+        {
+            "name":"purple",
+            "data_link":{
+                "protocol":"tcp",
+                "version": 1,
+                "description":"Taichu plane TCP raw reader",
+                "options":{
+                    "ip":"192.168.10.176"
+                }
+            },
+	    "ctrl_link":{
+                "protocol":"rbcp",
+                "version": 1,
+                "description":"rbcp control",
+                "options":{
+                    "ip":"192.168.10.176"
+                }	
+            }
+
+        }        
+    ]
+}

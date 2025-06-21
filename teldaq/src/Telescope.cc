@@ -6,31 +6,20 @@
 
 using namespace taichu;
 
-static const std::string builtin_tele_conf_str ="";
-// #include "altel_tele_conf_json.hh"
-//   ;
+static const std::string builtin_tele_conf_str =
+  // "";
+#include "taichu_tel_conf.json.hh"
+  ;
 
 
-static const std::string builtin_layer_conf_str ="";
-// #include "altel_layer_conf_json.hh"
-//   ;
+static const std::string builtin_layer_conf_str =
+  // "";
+#include "taichu_layer_conf.json.hh"
+  ;
 
-
-namespace{
-  std::string TimeNowString(const std::string& format){
-    std::time_t time_now = std::time(nullptr);
-    std::string str_buffer(100, char(0));
-    size_t n = std::strftime(&str_buffer[0], sizeof(str_buffer.size()),
-                             format.c_str(), std::localtime(&time_now));
-    str_buffer.resize(n?(n-1):0);
-    return str_buffer;
-  }
-}
 
 
 Telescope::Telescope(const std::string& tele_js_str, const std::string& layer_js_str){
-
-
 
   m_jsd_tele.Parse((tele_js_str=="builtin"||tele_js_str.empty())?builtin_tele_conf_str:tele_js_str);
   if(m_jsd_tele.HasParseError()){
@@ -70,7 +59,6 @@ Telescope::Telescope(const std::string& tele_js_str, const std::string& layer_js
     loc_layer.insert(std::pair<double, std::string>(loc, name));
   }
 
-
   for(const auto& l: loc_layer){
     std::string layer_name = l.second;
     bool layer_found = false;
@@ -78,7 +66,7 @@ Telescope::Telescope(const std::string& tele_js_str, const std::string& layer_js
       if(js_layer.HasMember("name") && js_layer["name"]==layer_name){
         std::string ly_name=layer_name;
         std::string ly_host=js_layer["data_link"]["options"]["ip"].GetString();
-        short int ly_port=js_layer["data_link"]["options"]["port"].GetUint();
+        // short int ly_port=js_layer["data_link"]["options"]["port"].GetUint();
         //std::unique_ptr<Layer> l(new Layer(ly_name, ly_host, ly_port));
         std::unique_ptr<Frontend> l(new Frontend(ly_host));
         m_vec_layer.push_back(std::move(l));
@@ -102,7 +90,6 @@ Telescope::~Telescope(){
 TelEventSP Telescope::ReadEvent(){
   if (!m_is_running) return nullptr;
 
- 
   uint32_t trigger_n = -1;
   for(auto &l: m_vec_layer){
     if( l->Size() == 0){
