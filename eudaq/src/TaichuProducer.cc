@@ -4,6 +4,10 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <regex>
+
+#include "mysystem.hh"
+#include "myrapidjson.h"
 
 #include "Telescope.hh"
 
@@ -59,13 +63,109 @@ namespace{
 
 
 void taichu::TaichuProducer::DoInitialise(){
-  m_tel.reset(new taichu::Telescope("builtin", "builtin"));
-  m_tel->Init();
+  m_tel.reset();
+  const eudaq::Configuration &param = *GetInitConfiguration();
+  param.Print();
+  std::string tel_json_str;
+  if(param.Has("GEOMETRY_SETUP")){
+    std::map<std::string, double> mapLayerPos;
+    std::string str_GEOMETRY_SETUP;
+    str_GEOMETRY_SETUP = param.Get("GEOMETRY_SETUP", "");
+    std::regex block_regex("([a-zA-Z0-9]+)\\:([0-9]+)"); // sm[1]  name, sm[2]  pos
+    auto blocks_begin = std::sregex_iterator(str_GEOMETRY_SETUP.begin(), str_GEOMETRY_SETUP.end(), block_regex);
+    auto blocks_end = std::sregex_iterator();
+    std::cout << "Ini file: found" << std::distance(blocks_begin, blocks_end) << " telescope layers"<<std::endl;
+    for (std::sregex_iterator ism = blocks_begin; ism != blocks_end; ++ism){
+      // std::smatch &sm= *ism;
+      std::string sm_str = (*ism).str();
+      std::string layer_name = (*ism)[1].str();
+      double layer_pos = std::stod((*ism)[2].str());
+      mapLayerPos[layer_name] = layer_pos;
+    }
+
+    rapidjson::Document jsdoc;
+    rapidjson::Document::AllocatorType& a = jsdoc.GetAllocator();
+    jsdoc.SetObject();
+    jsdoc.AddMember("telescope", rapidjson::Value(rapidjson::kObjectType), a);
+    jsdoc["telescope"].AddMember("locations", rapidjson::Value(rapidjson::kObjectType), a);
+    jsdoc["telescope"].AddMember("config", rapidjson::Value(rapidjson::kObjectType), a);
+    for(const auto pairLayerPos : mapLayerPos){
+      rapidjson::Value name_js(pairLayerPos.first.c_str(), a);
+      rapidjson::Value pos_js(pairLayerPos.second);
+      jsdoc["telescope"]["locations"].AddMember(name_js, pos_js, a);
+    }
+    rapidjson::StringBuffer sb;
+    // rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(sb);
+    jsdoc.Accept(writer);
+    tel_json_str = sb.GetString();
+  }
+
+  if(tel_json_str.empty()){
+    std::cout<<"not able to create tele_json from eudaq init file"<<std::endl;
+    // return;
+    m_tel.reset(new taichu::Telescope("builtin", "builtin"));
+  }
+
+  if(m_tel)
+    m_tel->Init();
+
 }
 
+struct REG_CONF{
+  enum        TYPE{FIRMWARE, SENSOR, DELAY};
+  TYPE        regtype;
+  std::string regname;
+  uint64_t    value;
+};
+
 void taichu::TaichuProducer::DoConfigure(){
-  //do nothing here
+  const eudaq::Configuration &param = *GetConfiguration();
+  param.Print();
+  std::vector<REG_CONF> vecRegconf;
+  if(param.Has("REG_OVERRIDE")){
+    std::string str_REG_OVERRIDE;
+    str_REG_OVERRIDE = param.Get("REG_OVERRIDE", "");
+    std::regex block_regex("((?:fw)|(?:FW)|(?:sn)|(?:SN))\\:([a-zA-Z0-9]+)\\:(?:(?:([0-9]+))|(?:(0[Xx])+([0-9a-fA-F]+))|(?:(0[Bb])+([0-1]+)))");
+    ////////////////////////^1                              ^2                     ^3           ^4      ^5                 ^6      ^7//////////
+    auto blocks_begin = std::sregex_iterator(str_REG_OVERRIDE.begin(), str_REG_OVERRIDE.end(), block_regex);
+    auto blocks_end = std::sregex_iterator();
+    std::cout<< "conf file reg: found" << std::distance(blocks_begin, blocks_end) << " blocks"<<std::endl;
+
+    for (std::sregex_iterator ism = blocks_begin; ism != blocks_end; ++ism){
+      // std::smatch &sm= *ism;
+      std::string sm_str = (*ism).str();
+      auto& sm = *ism;
+      REG_CONF regconf;
+      std::string regtype_str = sm[1].str();
+      if(regtype_str=="fw"||regtype_str=="FW"){
+        regconf.regtype=REG_CONF::TYPE::FIRMWARE;
+      }else if(regtype_str=="sn"||regtype_str=="SN"){
+        regconf.regtype=REG_CONF::TYPE::SENSOR;
+      }
+      regconf.regname = sm[2].str();
+      if(!sm[3].str().empty()){
+        regconf.value = std::stoull(sm[5].str(), 0, 10);
+      }else if(!sm[4].str().empty()){
+        regconf.value = std::stoull(sm[5].str(), 0, 16);
+      }else if(!sm[6].str().empty()){
+        regconf.value = std::stoull(sm[7].str(), 0, 2);
+      }
+      vecRegconf.push_back(regconf);
+    }
+  }
+
+  for(auto regconf: vecRegconf){
+    if(regconf.regtype==REG_CONF::TYPE::FIRMWARE){
+      // m_tel->SetFirmwareRegister(regconf.regname, regconf.value);
+    }
+    else if(regconf.regtype==REG_CONF::TYPE::SENSOR){
+      // m_tel->SetSensorRegister(regconf.regname, regconf.value);
+    }
+  }
 }
+
+
 
 void taichu::TaichuProducer::DoStartRun(){
   m_tel->Start_no_tel_reading();
