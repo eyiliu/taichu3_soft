@@ -155,7 +155,6 @@ TelEventSP Telescope::ReadEvent(){
   m_st_n_ev ++;
   return telev_sync;
 
-
 }
 
 TelEventSP Telescope::ReadEvent_Lastcopy(){
@@ -255,4 +254,21 @@ uint64_t Telescope::AsyncWatchDog(){
   }
   //sleep and watch running time status;
   return 0;
+}
+
+
+void Telescope::BroadcastFirmwareRegister(const std::string& name, uint64_t value){
+  for(auto &fe :  m_vec_layer){
+    if(fe){
+      fe->SetFirmwareRegister(name, value);
+    }
+  }
+}
+
+void Telescope::BroadcastSensorRegister(const std::string& name, uint64_t value){
+  for(auto &fe :  m_vec_layer){
+    if(fe){
+      fe->SetSensorRegister(name, value);
+    }
+  }
 }

@@ -33,15 +33,15 @@ namespace taichu{
     Telescope(const std::string& tele_js_str, const std::string& layer_js_str);
     TelEventSP ReadEvent();
 
+    void BroadcastFirmwareRegister(const std::string& name, uint64_t value);
+    void BroadcastSensorRegister(const std::string& name, uint64_t value);
+
     void Init();
     void Start();
     void Stop();
     void Start_no_tel_reading();
     uint64_t AsyncRead();
     uint64_t AsyncWatchDog();
-
-    // JsonDocument m_jsd_tele;
-    // JsonDocument m_jsd_layer;
 
     rapidjson::Document m_jsd_tele;
     rapidjson::Document m_jsd_layer;

@@ -109,7 +109,6 @@ void taichu::TaichuProducer::DoInitialise(){
 
   if(m_tel)
     m_tel->Init();
-
 }
 
 struct REG_CONF{
@@ -127,7 +126,7 @@ void taichu::TaichuProducer::DoConfigure(){
     std::string str_REG_OVERRIDE;
     str_REG_OVERRIDE = param.Get("REG_OVERRIDE", "");
     std::regex block_regex("((?:fw)|(?:FW)|(?:sn)|(?:SN))\\:([a-zA-Z0-9]+)\\:(?:(?:([0-9]+))|(?:(0[Xx])+([0-9a-fA-F]+))|(?:(0[Bb])+([0-1]+)))");
-    ////////////////////////^1                              ^2                     ^3           ^4      ^5                 ^6      ^7//////////
+    ////////////////////////^1                              ^2                     ^3           ^4      ^5                 ^6      ^7/
     auto blocks_begin = std::sregex_iterator(str_REG_OVERRIDE.begin(), str_REG_OVERRIDE.end(), block_regex);
     auto blocks_end = std::sregex_iterator();
     std::cout<< "conf file reg: found" << std::distance(blocks_begin, blocks_end) << " blocks"<<std::endl;
@@ -157,10 +156,10 @@ void taichu::TaichuProducer::DoConfigure(){
 
   for(auto regconf: vecRegconf){
     if(regconf.regtype==REG_CONF::TYPE::FIRMWARE){
-      // m_tel->SetFirmwareRegister(regconf.regname, regconf.value);
+      if(m_tel) m_tel->BroadcastFirmwareRegister(regconf.regname, regconf.value);
     }
     else if(regconf.regtype==REG_CONF::TYPE::SENSOR){
-      // m_tel->SetSensorRegister(regconf.regname, regconf.value);
+      if(m_tel) m_tel->BroadcastSensorRegister(regconf.regname, regconf.value);
     }
   }
 }
@@ -168,11 +167,11 @@ void taichu::TaichuProducer::DoConfigure(){
 
 
 void taichu::TaichuProducer::DoStartRun(){
-  m_tel->Start_no_tel_reading();
+  if(m_tel) m_tel->Start_no_tel_reading();
 }
 
 void taichu::TaichuProducer::DoStopRun(){
-  m_tel->Stop();
+  if(m_tel) m_tel->Stop();
   m_exit_of_run = true;
 }
 
@@ -191,7 +190,8 @@ void taichu::TaichuProducer::RunLoop(){
   m_exit_of_run = false;
   bool is_first_event = true;
   while(!m_exit_of_run){
-    auto telev = m_tel->ReadEvent();
+    TelEventSP telev;
+    if(m_tel) telev = m_tel->ReadEvent();
     if(!telev){
       std::this_thread::sleep_for(std::chrono::microseconds(100));
       continue;
