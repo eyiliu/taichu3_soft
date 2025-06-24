@@ -38,8 +38,6 @@ static const std::string builtin_taichupix3_reg_str =
   ;
 
 
-
-
 Frontend::Frontend(const std::string& netip){
   m_jsdoc_firmware.Parse(builtin_firmware_reg_str.c_str());
   if(m_jsdoc_firmware.HasParseError()){
