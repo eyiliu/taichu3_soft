@@ -1,0 +1,84 @@
+{
+    "name":null,
+    "data_link":{
+        "protocol":"tcp",
+        "options":{
+            "ip":null
+        }
+    },
+    
+    "ctrl_link":{
+        "protocol":"rbcp",
+        "ip": null,
+	"ops":{
+	    "reset":[
+		{"writefw":{"upload_data": 0}},
+		"thread_stop",	
+		{"writefw":{"chip_reset":0}},
+		{"writefw":{"chip_reset":1}},
+		{"writefw":{"global_reset":1}},
+		{"writefw":{"all_buffer_reset": 1}},
+		"clean_buffer",
+		"clean_counter"
+	    ],
+	    "init":[
+		{"writefw":{"upload_data":0}},
+		{"writefw":{"chip_reset":0}},
+		{"writefw":{"chip_reset":1}},
+		{"writefw":{"global_reset":1}},
+		{"writefw":{"all_buffer_reset":1}},
+		{"writefw":{"set_daq_id":0}},
+		{"writefw":{"global_work_mode":0}},
+		
+		{"writesn":{"RCKI": 1}},
+		{"writesn":{"TRIGN":1, "CPRN":1, "DOFREQ": "0b01"}},
+		{"writesn":{"REG_BGR_TC":"0b01", "C_MASK_EN":0}},
+		{"writesn":{"PSET":1, "OISEL":0, "OPSEL":0}},
+		
+		{"writesn":{"REG_CDAC0_2_0":"0b010", "ENIBG":0, "REG_BGR_OFFSET":"0b010", "ENBGR":1}},
+		{"writesn":{"REG_CDAC1_0":0,"EN_CDAC_T0":1, "EN_CDAC0":1, "REG_CDAC0_7_3": "0b00000"}},
+		{"writesn":{"EN_CDAC1":1,"REG_CDAC1_7_1":"0b0010000"}},
+		{"writesn":{"REG_CDAC2_6_0":"0b0000101", "EN_CDAC_T1":1}},
+		{"writesn":{"REG_VDAC0_4_0":"0b00000", "EN_CDAC_T2":1,  "EN_CDAC2":1, "REG_CDAC2_7":0}},
+		{"writesn":{"REG_VDAC0_C2_0":"0b000", "REG_VDAC0_9_5":"0b00000"}},
+		{"writesn":{"REG_VDAC1_2_0":"0b110", "EN_VDAC0":1, "REG_VDAC0_T":"0b11", "REG_VDAC0_C4_3":"0b10"}},
+		{"writesn":{"REG_VDAC1_C0":0, "REG_VDAC1_9_3": "0b0000000"}},
+		{"writesn":{"REG_VDAC2_0":1, "EN_VDAC1":1, "REG_VDAC1_T":"0b11", "REG_VDAC1_C4_1":"0b1000"}},
+		{"writesn":{"REG_VDAC2_8_1":"0b10010101"}},
+		{"writesn":{"REG_VDAC2_T":"0b11", "REG_VDAC2_C":"0b10000", "REG_VDAC2_9":0}},
+		{"writesn":{"REG_VDAC3_6_0":"0b1000100", "EN_VDAC2":1}},
+		{"writesn":{"REG_VDAC3_C":"0b10000",  "REG_VDAC3_9_7":"0b010"}},
+		{"writesn":{"REG_MUXO":"0b01", "REG_MUX":"0b010", "EN_VDAC3":1, "REG_VDAC3_T":"0b11"}},
+		{"writesn":{"REG_CDAC_8NA4_0":"0b00010", "EN_CDAC_8NA":0, "REG_CDAC_8NA_BGR":1, "REG_SEL_CDAC_8NA":0}},
+		{"writesn":{"REG_CDAC_8NA_TRIM":"0b00", "REG_CDAC_8NA5":0}},
+
+		{"boarddac":{"ch0": 0.47}},
+		{"boarddac":{"ch1": 1.6}},
+		{"boarddac":{"ch2": 1.6512}},
+		
+		{"writefw":{"loadm": "0xff"}},
+		{"sleepms":10},
+		{"flushpixelmask":{"MASK":[]}},
+		{"flushpixelmask":{"UNCAL":[]}}
+	    ],
+	    "conf":[	
+		{"writefw":{"set_daq_id":null}}
+	    ],
+	    "start":[
+		"clean_buffer",
+		"clean_counter",
+		"thread_start",	
+		{"writefw":{"upload_data":1}}
+	    ],
+	    "stop":[
+		{"writefw":{"upload_data":0}},
+		"thread_stop",
+		"clean_buffer",		
+		{"writefw":{"chip_reset":0}},
+		{"writefw":{"chip_reset":1}},
+		{"writefw":{"global_reset":1}},
+		{"writefw":{"all_buffer_reset": 1}}
+	    ]
+	}
+    }
+}
