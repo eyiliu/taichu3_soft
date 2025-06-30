@@ -611,7 +611,7 @@ void Frontend::daq_conf_default(){
   SetFirmwareRegister("global_reset", 1);
   SetFirmwareRegister("all_buffer_reset", 1);
   SetFirmwareRegister("set_daq_id", 2);
-  SetFirmwareRegister("global_work_mode", 1);
+  SetFirmwareRegister("global_work_mode", 0);
   // need to set daq id and trigger mode
 
   SetSensorRegister("RCKI", 1);
@@ -831,7 +831,3 @@ uint64_t Frontend::AsyncWatchDog(){
 }
 
 
-void Frontend::ResyncBuffer(){
-    m_tcpcon->TCPResyncBuffer();
-    return;
-}

@@ -39,6 +39,9 @@ Telescope::Telescope(const std::string& tele_js_str, const std::string& layer_js
   }
   if(!m_jsd_layer.HasMember("layers")){
     fprintf(stderr, "JSON configure file error: no \"layers\" section \n");
+    std::cout<< layer_js_str<<std::endl;
+
+    
     throw;
   }
   const auto& js_layers     = m_jsd_layer["layers"];
@@ -59,6 +62,7 @@ Telescope::Telescope(const std::string& tele_js_str, const std::string& layer_js
     loc_layer.insert(std::pair<double, std::string>(loc, name));
   }
 
+  uint16_t layer_n = 0;
   for(const auto& l: loc_layer){
     std::string layer_name = l.second;
     bool layer_found = false;
@@ -69,6 +73,8 @@ Telescope::Telescope(const std::string& tele_js_str, const std::string& layer_js
         // short int ly_port=js_layer["data_link"]["options"]["port"].GetUint();
         //std::unique_ptr<Layer> l(new Layer(ly_name, ly_host, ly_port));
         std::unique_ptr<Frontend> l(new Frontend(ly_host));
+	l->m_extension = layer_n;
+	layer_n ++;
         m_vec_layer.push_back(std::move(l));
         layer_found = true;
         break;

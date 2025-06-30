@@ -142,7 +142,6 @@ public:
   uint64_t Size();
 
   void ClearBuffer();
-  void ResyncBuffer();
   std::string GetStatusString();
   uint64_t AsyncWatchDog();
 

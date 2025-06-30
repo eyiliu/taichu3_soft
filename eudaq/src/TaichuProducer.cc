@@ -77,7 +77,7 @@ void taichu::TaichuProducer::DoInitialise(){
     std::regex block_regex("([a-zA-Z0-9]+)\\:([0-9]+)"); // sm[1]  name, sm[2]  pos
     auto blocks_begin = std::sregex_iterator(str_GEOMETRY_SETUP.begin(), str_GEOMETRY_SETUP.end(), block_regex);
     auto blocks_end = std::sregex_iterator();
-    std::cout << "Ini file: found" << std::distance(blocks_begin, blocks_end) << " telescope layers"<<std::endl;
+    std::cout << "Ini file: found " << std::distance(blocks_begin, blocks_end) << " telescope layers"<<std::endl;
     for (std::sregex_iterator ism = blocks_begin; ism != blocks_end; ++ism){
       // std::smatch &sm= *ism;
       std::string sm_str = (*ism).str();
@@ -127,12 +127,15 @@ void taichu::TaichuProducer::DoInitialise(){
       mask_col.emplace(lname, std::move(maskXYs));
     }
   }
+  // TODO: call telescope mask fun
+  
 
+  
   if(!tel_json_str.empty()){
-    m_tel.reset(new taichu::Telescope("builtin", tel_json_str));
+    m_tel.reset(new taichu::Telescope(tel_json_str,""));
   }else{
     std::cout<<"not able to create tele_json from eudaq init file"<<std::endl;
-    m_tel.reset(new taichu::Telescope("builtin", "builtin"));
+    m_tel.reset(new taichu::Telescope("", ""));
   }
 
 
@@ -211,6 +214,7 @@ void taichu::TaichuProducer::DoReset(){
 }
 
 void taichu::TaichuProducer::DoTerminate(){
+  m_tel.reset();
   std::terminate();
 }
 
