@@ -247,7 +247,7 @@ int main(int argc, char **argv){
 
   std::unique_ptr<Frontend> daqbup;
   try{
-    daqbup.reset(new Frontend(daqbHost_ipstr));
+    daqbup.reset(new Frontend(daqbHost_ipstr, "tcpcontool", 0));
   }catch(...){
     daqbup.reset();
     exit(-1);

@@ -283,7 +283,7 @@ int main(int argc, char **argv){
   TFile *tf_data=0;
   std::unique_ptr<Frontend> daqbup;
   try{
-    daqbup.reset(new Frontend(daqbHost_ipstr));
+    daqbup.reset(new Frontend(daqbHost_ipstr, "ConfigDAQtool", 0));
   }catch(...){
     daqbup.reset();
     exit(-1);
@@ -298,7 +298,7 @@ int main(int argc, char **argv){
   std::string reglist_path_firmware = frfile_opt;  
   std::string reglist_jsstr_sensor   = LoadFileToString(reglist_path_sensor);
   std::string reglist_jsstr_firmware = LoadFileToString(reglist_path_firmware);
-  Frontend fw(reglist_jsstr_sensor, reglist_jsstr_firmware, daqbHost_ipstr);
+  Frontend fw(reglist_jsstr_sensor, reglist_jsstr_firmware, daqbHost_ipstr, "ConfigDAQtool", 0);
 
   //-------------------linenoise-------------------------
   std::filesystem::path linenoise_history_path = std::filesystem::temp_directory_path() / "tcpcontool.history.txt";

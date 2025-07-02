@@ -109,7 +109,7 @@ int main(int argc, char **argv){
   std::string reglist_jsstr_sensor   = LoadFileToString(reglist_path_sensor);
   std::string reglist_jsstr_firmware = LoadFileToString(reglist_path_firmware);
 
-  Frontend fw(reglist_jsstr_sensor, reglist_jsstr_firmware, ip_address_str);
+  Frontend fw(reglist_jsstr_sensor, reglist_jsstr_firmware, ip_address_str, "rbcptool" ,0);
   
   std::filesystem::path linenoise_history_path = std::filesystem::temp_directory_path() / "rbcptool.history.txt";
   linenoiseHistoryLoad(linenoise_history_path.string().c_str());

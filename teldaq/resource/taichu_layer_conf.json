@@ -2,6 +2,7 @@
     "layers":[
         {
             "name":"red",
+	    "daqid":0,
             "data_link":{
                 "protocol":"tcp",
                 "version": 1,
@@ -23,6 +24,7 @@
 
         {
             "name":"orange",
+	    "daqid":1,
             "data_link":{
                 "protocol":"tcp",
                 "version": 1,
@@ -43,6 +45,7 @@
 
         {
             "name":"yellow",
+	    "daqid":2,
             "data_link":{
                 "protocol":"tcp",
                 "version": 1,
@@ -64,6 +67,7 @@
 
         {
             "name":"green",
+	    "daqid":3,
             "data_link":{
                 "protocol":"tcp",
                 "version": 1,
@@ -85,6 +89,7 @@
 
         {
             "name":"cyan",
+	    "daqid":4,
             "data_link":{
                 "protocol":"tcp",
                 "version": 1,
@@ -106,6 +111,7 @@
         
         {
             "name":"blue",
+	    "daqid":5,
             "data_link":{
                 "protocol":"tcp",
                 "version": 1,
@@ -127,6 +133,7 @@
 	
         {
             "name":"purple",
+	    "daqid":6,
             "data_link":{
                 "protocol":"tcp",
                 "version": 1,

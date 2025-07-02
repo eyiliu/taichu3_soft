@@ -31,13 +31,21 @@ class Frontend{
 public:
   enum MaskType {MASK, CAL, UNMASK, UNCAL};
 
-  Frontend(const std::string& netip);
+  Frontend(const std::string& netip,
+           const std::string& name,
+           const uint64_t daqid
+    );
 
 
   Frontend(const std::string& sensor_jsstr,
            const std::string& firmware_jsstr,
-           const std::string& netip);
+           const std::string& netip,
+           const std::string& name,
+           const uint64_t daqid
+    );
 
+
+  const std::string& GetName(){return m_name;};
 
   // bool OpenTCP(const std::string& ip);
   // bool OpenUDP(const std::string& ip);
@@ -84,7 +92,9 @@ public:
 private:
 
   std::string m_netip;
-
+  uint64_t m_daqid{0};
+  std::string m_name{"unamed"};
+  
   rapidjson::Document m_jsdoc_sensor;
   rapidjson::Document m_jsdoc_firmware;
 

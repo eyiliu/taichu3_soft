@@ -3,6 +3,7 @@
 #include <mutex>
 #include <future>
 #include <cstdio>
+#include <set>
 
 #include "myrapidjson.h"
 
@@ -35,6 +36,7 @@ namespace taichu{
 
     void BroadcastFirmwareRegister(const std::string& name, uint64_t value);
     void BroadcastSensorRegister(const std::string& name, uint64_t value);
+    void FlushPixelMask(const std::map<std::string,  std::set<std::pair<uint16_t, uint16_t>>>& mask_col);
 
     void Init();
     void Start();

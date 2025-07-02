@@ -41,7 +41,6 @@ Telescope::Telescope(const std::string& tele_js_str, const std::string& layer_js
     fprintf(stderr, "JSON configure file error: no \"layers\" section \n");
     std::cout<< layer_js_str<<std::endl;
 
-    
     throw;
   }
   const auto& js_layers     = m_jsd_layer["layers"];
@@ -69,12 +68,10 @@ Telescope::Telescope(const std::string& tele_js_str, const std::string& layer_js
     for (const auto& js_layer : js_layers.GetArray()){
       if(js_layer.HasMember("name") && js_layer["name"]==layer_name){
         std::string ly_name=layer_name;
+        uint64_t ly_daqid=js_layer["daqid"].GetUint();
         std::string ly_host=js_layer["data_link"]["options"]["ip"].GetString();
-        // short int ly_port=js_layer["data_link"]["options"]["port"].GetUint();
         //std::unique_ptr<Layer> l(new Layer(ly_name, ly_host, ly_port));
-        std::unique_ptr<Frontend> l(new Frontend(ly_host));
-	l->m_extension = layer_n;
-	layer_n ++;
+        std::unique_ptr<Frontend> l(new Frontend(ly_host, ly_name, ly_daqid));
         m_vec_layer.push_back(std::move(l));
         layer_found = true;
         break;
@@ -275,6 +272,17 @@ void Telescope::BroadcastSensorRegister(const std::string& name, uint64_t value)
   for(auto &fe :  m_vec_layer){
     if(fe){
       fe->SetSensorRegister(name, value);
+    }
+  }
+}
+
+void Telescope::FlushPixelMask(const std::map<std::string,  std::set<std::pair<uint16_t, uint16_t>>>& mask_col){
+  for(auto &fe :  m_vec_layer){
+    std::string name = fe->GetName();
+    auto name_mask_it = mask_col.find(name);
+    if(name_mask_it != mask_col.end()){
+      auto & maskset = name_mask_it->second;
+      fe->FlushPixelMask(maskset, Frontend::MaskType::MASK);
     }
   }
 }

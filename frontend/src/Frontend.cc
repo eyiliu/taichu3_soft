@@ -38,7 +38,10 @@ static const std::string builtin_taichupix3_reg_str =
   ;
 
 
-Frontend::Frontend(const std::string& netip){
+Frontend::Frontend(const std::string& netip,
+                   const std::string& name,
+                   const uint64_t daqid
+  ){
   m_jsdoc_firmware.Parse(builtin_firmware_reg_str.c_str());
   if(m_jsdoc_firmware.HasParseError()){
     fprintf(stderr, "JSON parse error: %s (at string positon %u)", rapidjson::GetParseError_En(m_jsdoc_firmware.GetParseError()), m_jsdoc_firmware.GetErrorOffset());
@@ -50,14 +53,19 @@ Frontend::Frontend(const std::string& netip){
     fprintf(stderr, "JSON parse error: %s (at string positon %u)", rapidjson::GetParseError_En(m_jsdoc_sensor.GetParseError()), m_jsdoc_sensor.GetErrorOffset());
     throw;
   }
-
   m_netip = netip;
+  m_name = name;
+  m_daqid = daqid;
+  m_extension = daqid;
 }
 
 
 Frontend::Frontend(const std::string& sensor_jsstr,
                    const std::string& firmware_jsstr,
-                   const std::string& netip){
+                   const std::string& netip,
+                   const std::string& name,
+                   const uint64_t daqid
+  ){
   m_jsdoc_firmware.Parse(firmware_jsstr.empty()? builtin_firmware_reg_str.c_str():firmware_jsstr.c_str());
   if(m_jsdoc_firmware.HasParseError()){
     fprintf(stderr, "JSON parse error: %s (at string positon %u)", rapidjson::GetParseError_En(m_jsdoc_firmware.GetParseError()), m_jsdoc_firmware.GetErrorOffset());
@@ -70,6 +78,9 @@ Frontend::Frontend(const std::string& sensor_jsstr,
     throw;
   }
   m_netip = netip;
+  m_name = name;
+  m_daqid = daqid;
+  m_extension = daqid;
 }
 
 void  Frontend::WriteByte(uint64_t address, uint64_t value){
@@ -610,7 +621,7 @@ void Frontend::daq_conf_default(){
   SetFirmwareRegister("chip_reset", 1);
   SetFirmwareRegister("global_reset", 1);
   SetFirmwareRegister("all_buffer_reset", 1);
-  SetFirmwareRegister("set_daq_id", 2);
+  SetFirmwareRegister("set_daq_id", m_daqid);
   SetFirmwareRegister("global_work_mode", 0);
   // need to set daq id and trigger mode
 
@@ -829,5 +840,3 @@ uint64_t Frontend::AsyncWatchDog(){
   }
   return 0;
 }
-
-
