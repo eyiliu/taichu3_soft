@@ -1,7 +1,7 @@
 {    
     "layers":[
         {
-            "name":"red",
+            "name":"200p2",
 	    "daqid":0,
             "data_link":{
                 "protocol":"tcp",
@@ -10,20 +10,11 @@
                 "options":{
                     "ip":"192.168.200.2"
                 }
-		
-            },
-	    "ctrl_link":{
-                "protocol":"rbcp",
-                "version": 1,
-                "description":"rbcp control",
-                "options":{
-                    "ip":"192.168.200.2"
-                }	
             }
 	},
 
         {
-            "name":"orange",
+            "name":"200p3",
 	    "daqid":1,
             "data_link":{
                 "protocol":"tcp",
@@ -32,19 +23,11 @@
                 "options":{
                     "ip":"192.168.200.3"
                 }
-            },
-	    "ctrl_link":{
-                "protocol":"rbcp",
-                "version": 1,
-                "description":"rbcp control",
-                "options":{
-                    "ip":"192.168.200.3"
-                }	
             }	    
         },
 
         {
-            "name":"yellow",
+            "name":"200p4",
 	    "daqid":2,
             "data_link":{
                 "protocol":"tcp",
@@ -53,20 +36,12 @@
                 "options":{
                     "ip":"192.168.200.4"
                 }
-            },
-	    "ctrl_link":{
-                "protocol":"rbcp",
-                "version": 1,
-                "description":"rbcp control",
-                "options":{
-                    "ip":"192.168.200.4"
-                }	
             }
 
         },
 
         {
-            "name":"green",
+            "name":"200p5",
 	    "daqid":3,
             "data_link":{
                 "protocol":"tcp",
@@ -75,82 +50,49 @@
                 "options":{
                     "ip":"192.168.200.5"
                 }
-            },
-	    "ctrl_link":{
-                "protocol":"rbcp",
-                "version": 1,
-                "description":"rbcp control",
-                "options":{
-                    "ip":"192.168.200.5"
-                }	
             }
 
         },
 
         {
-            "name":"cyan",
+            "name":"200p8",
 	    "daqid":4,
             "data_link":{
                 "protocol":"tcp",
                 "version": 1,
                 "description":"Taichu plane TCP raw reader",
                 "options":{
-                    "ip":"192.168.200.6"
+                    "ip":"192.168.200.8"
                 }
-            },
-	    "ctrl_link":{
-                "protocol":"rbcp",
-                "version": 1,
-                "description":"rbcp control",
-                "options":{
-                    "ip":"192.168.200.6"
-                }	
             }
 
         },
-        
+ 
         {
-            "name":"blue",
+            "name":"200p9",
 	    "daqid":5,
             "data_link":{
                 "protocol":"tcp",
                 "version": 1,
                 "description":"Taichu plane TCP raw reader",
                 "options":{
-                    "ip":"192.168.200.7"
+                    "ip":"192.168.200.9"
                 }
-            },
-	    "ctrl_link":{
-                "protocol":"rbcp",
-                "version": 1,
-                "description":"rbcp control",
-                "options":{
-                    "ip":"192.168.200.7"
-                }	
             }
 
         },
 	
         {
-            "name":"purple",
-	    "daqid":6,
+            "name":"200p7",
+	    "daqid":7,
             "data_link":{
                 "protocol":"tcp",
                 "version": 1,
                 "description":"Taichu plane TCP raw reader",
                 "options":{
-                    "ip":"192.168.200.8"
+                    "ip":"192.168.200.7"
                 }
-            },
-	    "ctrl_link":{
-                "protocol":"rbcp",
-                "version": 1,
-                "description":"rbcp control",
-                "options":{
-                    "ip":"192.168.200.8"
-                }	
             }
-
         }        
     ]
 }
